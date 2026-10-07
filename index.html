@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toolkit FTTH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: workbench — narrow form column on the left, results (summary, diagram, downloads, data) on the right; stacks on phones. */
+:root {
+  --bg: #f3f5f7; --panel: #ffffff; --fg: #17212b; --muted: #5b6875; --line: #d9dfe5;
+  --accent: #0b6e75; --accent-fg: #ffffff; --accent-soft: #e2f1f1;
+  --warn: #9a5b00; --warn-bg: #fff3d6; --ok: #1d7a3e; --ok-bg: #e3f4e8; --err: #b42318; --err-bg: #fde7e5;
+  --dxf-line: #1f2933; --dxf-label: #3b4752; --dxf-spec: #1b5fa8; --dxf-end: #d0342c;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171c; --panel: #1a2128; --fg: #e4e9ee; --muted: #93a1ae; --line: #2c3640;
+  --accent: #4fb8bd; --accent-fg: #0b1a1c; --accent-soft: #173538;
+  --warn: #f2b84b; --warn-bg: #3a2c10; --ok: #6fd08f; --ok-bg: #143021; --err: #ff8a80; --err-bg: #3d1b19;
+  --dxf-line: #d5dde4; --dxf-label: #aab6c1; --dxf-spec: #6cb2ff; --dxf-end: #ff6b63;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12171c; --panel: #1a2128; --fg: #e4e9ee; --muted: #93a1ae; --line: #2c3640;
+  --accent: #4fb8bd; --accent-fg: #0b1a1c; --accent-soft: #173538;
+  --warn: #f2b84b; --warn-bg: #3a2c10; --ok: #6fd08f; --ok-bg: #143021; --err: #ff8a80; --err-bg: #3d1b19;
+  --dxf-line: #d5dde4; --dxf-label: #aab6c1; --dxf-spec: #6cb2ff; --dxf-end: #ff6b63;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 40px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: space-between; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+h1 small { font-weight: 400; color: var(--muted); font-size: 14px; margin-left: 8px; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+.status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); min-width: 0; }
+.bar { width: 140px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.main { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+form { display: grid; gap: 18px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; min-width: 0; }
+label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+input[type=text], input[type=number] { width: 100%; font: 14px var(--sans); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+input:focus-visible, button:focus-visible, .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.drop { border: 1.5px dashed var(--line); border-radius: var(--r); padding: 14px; text-align: center; cursor: pointer; display: grid; gap: 4px; background: var(--bg); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop strong { font-weight: 600; word-break: break-all; }
+.drop span { color: var(--muted); font-size: 12px; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 12px var(--sans); border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 13px; }
+.checks label { display: flex; gap: 6px; align-items: center; }
+button.primary { font: 600 15px var(--sans); background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 6px; padding: 10px 14px; cursor: pointer; }
+button.primary:disabled { opacity: .5; cursor: progress; }
+button.sec { font: 500 13px var(--sans); background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+button.sec:hover { border-color: var(--accent); }
+.results { display: grid; gap: 16px; min-width: 0; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { font-size: 13px; border-radius: 999px; padding: 3px 11px; font-weight: 500; background: var(--accent-soft); color: var(--fg); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.err { background: var(--err-bg); color: var(--err); }
+.source { color: var(--muted); font-size: 13px; }
+.preview { overflow: auto; background: var(--bg); border-radius: 6px; border: 1px solid var(--line); min-height: 220px; display: grid; place-items: center; }
+.preview svg { width: 100%; min-width: 760px; height: auto; display: block; padding: 8px; }
+.empty { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
+.dl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dl a.btn { font: 500 13px var(--sans); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; text-decoration: none; overflow-wrap: anywhere; flex: 0 1 auto; }
+.dl a.btn:hover { border-color: var(--accent); }
+.dl a.btn.main { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.dl .note { color: var(--muted); font-size: 12px; }
+.warnlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.warnlist li { background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+.warnlist li.err { background: var(--err-bg); color: var(--err); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+td.num, td.coord { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.cable { font-family: var(--mono); font-size: 11.5px; min-width: 260px; }
+tr.flag td { background: var(--warn-bg); }
+pre.log { font: 12px/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin: 0; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.msg { font-size: 13px; color: var(--muted); }
+a { color: var(--accent); }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 15px; font-weight: 600; min-width: 0; }
+.crumbs a { color: var(--muted); text-decoration: none; font-weight: 500; }
+.crumbs a:hover { color: var(--accent); }
+.crumbs .sep { color: var(--line); }
+.ghead { display: grid; gap: 2px; }
+.ghead h1 { font-size: 24px; }
+.tool .meta { font-size: 12.5px; color: var(--muted); }
+.emptygroup { background: var(--panel); border: 1px dashed var(--line); border-radius: var(--r); padding: 24px; color: var(--muted); text-align: center; }
+.back { margin: 0; font-size: 13px; }
+.back a { text-decoration: none; }
+.lead { margin: 0 0 4px; color: var(--muted); max-width: 65ch; }
+.menu { display: grid; gap: 14px; }
+.tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.tool { display: grid; grid-template-rows: auto 1fr auto; align-content: start; gap: 8px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 16px; color: var(--fg); text-decoration: none; min-width: 0; }
+a.tool:hover { border-color: var(--accent); }
+a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tool .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tool h3 { margin: 0; font-size: 16px; font-weight: 600; text-wrap: balance; }
+.tool p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.tool .io { font: 12px/1.5 var(--mono); color: var(--fg); background: var(--bg); border-radius: 6px; padding: 6px 8px; }
+.tool.soon { opacity: .72; border-style: dashed; }
+.tag { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.tag.ready { background: var(--ok-bg); color: var(--ok); }
+.tag.plan { background: var(--line); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <nav class="crumbs" id="crumbs" aria-label="Lokasi"></nav>
+    <div class="status" aria-live="polite"><div class="bar"><i id="barfill"></i></div><span id="statustext">Memuat Python…</span></div>
+  </header>
+
+  <section id="view-menu" class="menu" hidden>
+    <div class="ghead"><h1 id="gtitle">LINKNET</h1><p class="lead" id="glead"></p></div>
+    <div class="tools" id="tools"></div>
+  </section>
+
+  <section id="view-cmld" hidden>
+  <p class="back"><a href="#abd" id="backlink">← Kembali ke ABD</a></p>
+  <div class="main">
+    <div class="panel">
+      <form id="form" novalidate>
+        <fieldset>
+          <h2>Data</h2>
+          <label class="drop" id="drop" for="file">
+            <input type="file" id="file" accept=".xlsx,.xlsm,.json">
+            <strong id="fname">Contoh: Hub Centenial</strong>
+            <span>Klik atau tarik file .xlsx (Data Mancore) / .json ke sini</span>
+          </label>
+          <label class="f">Nama file hasil <input type="text" id="base" autocomplete="off"></label>
+        </fieldset>
+
+        <fieldset>
+          <h2>KMZ</h2>
+          <label class="f">Nama proyek (popup Google Earth) <input type="text" id="kmz_project" placeholder="mis. BB OLT CNT08 to Hub Centenial"></label>
+          <label class="f">Nama schema (huruf/angka/_) <input type="text" id="kmz_schema" placeholder="mis. CNT08_HubCentenial"></label>
+          <div class="row2">
+            <label class="f">Folder titik pertama <input type="text" id="first" value="AGG"></label>
+            <label class="f">Folder titik terakhir <input type="text" id="last" value="OLT"></label>
+          </div>
+          <div class="chips" role="group" aria-label="Preset folder">
+            <button type="button" class="chip" data-f="AGG" data-l="OLT">AGG / OLT · backbone</button>
+            <button type="button" class="chip" data-f="OLT" data-l="FDT">OLT / FDT</button>
+            <button type="button" class="chip" data-f="OLT" data-l="HUB BOX">OLT / HUB BOX</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <h2>DXF</h2>
+          <label class="f">Kode proyek <input type="text" id="kode" placeholder="mis. BB OLT CNT08"></label>
+          <label class="f">Nama proyek <input type="text" id="nama" placeholder="mis. OLT CNT08 to Hub Centenial"></label>
+          <label class="f">Perangkat per baris <input type="number" id="cols" value="5" min="1" max="20"></label>
+        </fieldset>
+
+        <fieldset>
+          <h2>Isi ZIP</h2>
+          <div class="checks">
+            <label><input type="checkbox" id="c_xlsx" checked> Excel</label>
+            <label><input type="checkbox" id="c_kmz" checked> KMZ</label>
+            <label><input type="checkbox" id="c_dxf" checked> DXF</label>
+            <label><input type="checkbox" id="c_svg" checked> Preview SVG</label>
+            <label><input type="checkbox" id="c_json"> rows JSON</label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="primary" id="go" disabled>Buat</button>
+      </form>
+    </div>
+
+    <div class="results">
+      <div class="panel">
+        <div class="summary" id="summary"><span class="source">Menunggu Python siap, lalu contoh Hub Centenial diproses otomatis.</span></div>
+      </div>
+
+      <div class="panel">
+        <h2>Diagram DXF</h2>
+        <div class="preview" id="preview"><div class="empty">Preview muncul di sini setelah diproses.</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Download</h2>
+        <div class="dl">
+          <span class="note" id="dlnote">File muncul di sini setelah diproses.</span>
+        </div>
+      </div>
+
+      <div class="panel" id="warnpanel" hidden>
+        <h2>Peringatan data</h2>
+        <ul class="warnlist" id="warnlist"></ul>
+      </div>
+
+      <div class="panel">
+        <h2>Data terbaca</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>#</th><th>Device</th><th>Street</th><th>Lat, Lon</th><th>Cable out</th><th>Catatan</th></tr></thead>
+          <tbody id="rows"><tr><td colspan="6" class="empty">Belum ada data.</td></tr></tbody>
+        </table></div>
+        <details style="margin-top:12px"><summary>Log proses</summary><pre class="log" id="log"></pre></details>
+      </div>
+    </div>
+  </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---- menu tree: add a group or tool here. A tool with status "ready" needs a <section id="view-<id>">. ----
+const MENU = {
+  id: "menu", name: "LINKNET", lead: "Pilih kategori pekerjaan.",
+  children: [
+    { id: "abd", name: "ABD", desc: "As Built Drawing: data dan gambar jaringan yang sudah terpasang.",
+      lead: "Alat untuk As Built Drawing. Semua berjalan di browser ini; file proyek tidak dikirim ke server.",
+      children: [
+        { id: "cmld", name: "CMLD", status: "ready",
+          desc: "Satu file data jadi Excel Data Mancore, KMZ Google Earth, dan diagram DXF, lengkap dengan cek data dan cek tabrakan teks.",
+          io: ".xlsx / .json → .xlsx · .kmz · .dxf" },
+        { id: "pdf", name: "PDF diagram", status: "plan",
+          desc: "Diagram jaringan siap cetak dalam PDF, dari data yang sama dengan DXF.", io: ".xlsx / .json → .pdf" },
+        { id: "foto", name: "Baca catatan lapangan", status: "plan",
+          desc: "Foto catatan tulisan tangan dibaca jadi baris data yang bisa langsung diproses.", io: "foto → .xlsx" },
+      ] },
+    { id: "apd", name: "APD", desc: "", lead: "", children: [] },
+  ],
+};
+const NODES = {}, PARENT = {};
+(function index(n, parent) { NODES[n.id] = n; PARENT[n.id] = parent; (n.children || []).forEach((c) => index(c, n)); })(MENU, null);
+const isGroup = (n) => Array.isArray(n.children);
+const pathOf = (n) => { const p = []; for (let x = n; x; x = PARENT[x.id]) p.unshift(x); return p; };
+let opened = new Set();
+
+function renderCrumbs(node) {
+  const nav = $("crumbs"); nav.innerHTML = "";
+  if (node === MENU) { const s = document.createElement("span"); s.className = "sep"; s.style.color = "var(--muted)"; s.textContent = "Toolkit FTTH"; nav.append(s); return; }
+  pathOf(node).forEach((n, i, arr) => {
+    if (i) { const s = document.createElement("span"); s.className = "sep"; s.textContent = "/"; nav.append(s); }
+    if (i === arr.length - 1) { const s = document.createElement("span"); s.textContent = n.name; s.setAttribute("aria-current", "page"); nav.append(s); }
+    else { const a = document.createElement("a"); a.href = "#" + n.id; a.textContent = n.name; nav.append(a); }
+  });
+}
+
+function countTools(n) {
+  let ready = 0, plan = 0;
+  (function walk(x) { if (isGroup(x)) x.children.forEach(walk); else if (x.status === "ready") ready++; else plan++; })(n);
+  return { ready, plan };
+}
+
+function renderGroup(g) {
+  $("gtitle").textContent = g.name;
+  $("glead").textContent = g.lead || "";
+  const box = $("tools"); box.innerHTML = "";
+  if (!g.children.length) {
+    const e = document.createElement("div"); e.className = "emptygroup";
+    e.textContent = "Belum ada alat di " + g.name + ".";
+    box.append(e); return;
+  }
+  for (const t of g.children) {
+    const group = isGroup(t), ready = group || t.status === "ready";
+    const el = document.createElement(ready ? "a" : "div");
+    el.className = "tool" + (ready ? "" : " soon");
+    if (ready) el.href = "#" + t.id;
+    const top = document.createElement("div"); top.className = "top";
+    const h = document.createElement("h3"); h.textContent = t.name;
+    top.append(h);
+    if (!group) { const tag = document.createElement("span"); tag.className = "tag " + (ready ? "ready" : "plan"); tag.textContent = ready ? "Siap" : "Rencana"; top.append(tag); }
+    const d = document.createElement("p"); d.textContent = t.desc || "";
+    el.append(top, d);
+    if (group) {
+      const c = countTools(t), m = document.createElement("div"); m.className = "meta";
+      m.textContent = c.ready || c.plan ? `${c.ready} alat siap` + (c.plan ? ` · ${c.plan} rencana` : "") : "Belum ada alat";
+      el.append(m);
+    } else { const io = document.createElement("div"); io.className = "io"; io.textContent = t.io; el.append(io); }
+    box.append(el);
+  }
+}
+
+function route() {
+  let node = NODES[location.hash.slice(1)] || MENU;
+  if (!isGroup(node) && node.status !== "ready") node = PARENT[node.id];
+  const tool = isGroup(node) ? null : node;
+  $("view-menu").hidden = !!tool;
+  document.querySelectorAll('section[id^="view-"]').forEach((v) => { if (v.id !== "view-menu") v.hidden = !tool || v.id !== "view-" + tool.id; });
+  if (tool) {
+    const parent = PARENT[tool.id];
+    $("backlink").href = "#" + parent.id; $("backlink").textContent = "← Kembali ke " + parent.name;
+    if (!opened.has(tool.id)) { opened.add(tool.id); if (tool.id === "cmld") run(); }
+  } else renderGroup(node);
+  renderCrumbs(node);
+  document.title = node === MENU ? "Toolkit FTTH" : pathOf(node).slice(1).map((n) => n.name).join(" / ") + " · Toolkit FTTH";
+  window.scrollTo(0, 0);
+}
+addEventListener("hashchange", route);
+const worker = new Worker("worker.js");
+let input = null;            // {bytes: Uint8Array, name}
+let last = null;             // last result
+let pyReady = false, busy = false, runId = 0;
+const SAMPLE = { kmz_project: "BB OLT CNT08 to Hub Centenial", kmz_schema: "CNT08_HubCentenial", kode: "BB OLT CNT08", nama: "OLT CNT08 to Hub Centenial", base: "CNT08_HubCentenial" };
+
+function setStatus(text, pct) {
+  $("statustext").textContent = text;
+  if (pct != null) $("barfill").style.width = pct + "%";
+}
+const stem = (n) => n.replace(/\.[^.]+$/, "");
+const schemaOf = (s) => s.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "CMLD";
+
+worker.onmessage = (ev) => {
+  const m = ev.data;
+  if (m.type === "status") {
+    setStatus(m.text, m.pct);
+    if (m.pct === 100 && !pyReady) { pyReady = true; $("go").disabled = false; if (opened.has("cmld")) run(); }
+  } else if (m.type === "result") {
+    busy = false; $("go").disabled = false; setStatus("Siap", 100);
+    show(m.result);
+  } else if (m.type === "error") {
+    busy = false; $("go").disabled = !pyReady;
+    setStatus("Gagal memuat/menjalankan Python", 0);
+    $("summary").innerHTML = "";
+    $("summary").append(pill("Error: " + m.message, "err"));
+  }
+};
+worker.postMessage({ type: "boot" });
+
+async function loadSample() {
+  const buf = new Uint8Array(await (await fetch("contoh.json")).arrayBuffer());
+  input = { bytes: buf, name: "rows_hub_centenial.json", sample: true };
+  for (const k in SAMPLE) $(k).value = SAMPLE[k];
+  if (opened.has("cmld")) run();
+}
+loadSample();
+route();
+
+function options() {
+  return {
+    base: $("base").value.trim(), kmz_project: $("kmz_project").value.trim(), kmz_schema: $("kmz_schema").value.trim(),
+    first: $("first").value.trim(), last: $("last").value.trim(), kode: $("kode").value.trim(), nama: $("nama").value.trim(),
+    cols: parseInt($("cols").value, 10) || 5,
+    xlsx: $("c_xlsx").checked, kmz: $("c_kmz").checked, dxf: $("c_dxf").checked, svg: $("c_svg").checked, json: $("c_json").checked,
+  };
+}
+
+function run() {
+  if (!pyReady || busy || !input) return;
+  busy = true; $("go").disabled = true; setStatus("Memproses…", 100);
+  worker.postMessage({ type: "run", id: ++runId, bytes: input.bytes.slice(0), filename: input.name, options: options() });
+}
+
+function pill(text, cls) { const s = document.createElement("span"); s.className = "pill " + (cls || ""); s.textContent = text; return s; }
+
+function show(r) {
+  last = r;
+  const log = r.log.join("\n");
+  $("log").textContent = log;
+  const sum = $("summary"); sum.innerHTML = "";
+  const src = document.createElement("span"); src.className = "source";
+  src.textContent = (input.sample ? "Contoh: " : "File: ") + input.name;
+  sum.append(src);
+  if (!r.ok) {
+    sum.append(pill(r.log[r.log.length - 1] || "Gagal", "err"));
+    $("preview").innerHTML = '<div class="empty">Tidak ada preview — perbaiki data lalu klik Buat lagi.</div>';
+  } else {
+    sum.append(pill(r.rows.length + " perangkat"), pill((r.rows.length - 1) + " kabel"));
+    sum.append(r.warnings.length ? pill(r.warnings.length + " peringatan", "warn") : pill("Data OK", "ok"));
+    const coll = (log.match(/Cek tabrakan DXF: (.*)/) || [])[1] || "";
+    sum.append(coll.startsWith("OK") ? pill("DXF tanpa tabrakan", "ok") : pill("DXF: " + coll, "err"));
+    $("preview").innerHTML = r.svg;
+  }
+  // warnings
+  const wl = $("warnlist"); wl.innerHTML = "";
+  const flagged = new Set();
+  for (const w of r.warnings) {
+    const li = document.createElement("li"); li.textContent = w; wl.append(li);
+    const m = w.match(/^#(\d+)/); if (m) flagged.add(+m[1]);
+  }
+  $("warnpanel").hidden = r.warnings.length === 0;
+  // table
+  const tb = $("rows"); tb.innerHTML = "";
+  r.rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    if (flagged.has(i + 1) || row[5]) tr.className = "flag";
+    const cells = [[i + 1, "num"], [row[0]], [row[1]], [Number(row[2]).toFixed(6) + ", " + Number(row[3]).toFixed(6), "coord"], [row[4], "cable"], [row[5] || ""]];
+    for (const [v, cls] of cells) { const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = v; tr.append(td); }
+    tb.append(tr);
+  });
+  if (!r.rows.length) tb.innerHTML = '<tr><td colspan="6" class="empty">Belum ada data.</td></tr>';
+  renderDownloads(r);
+}
+
+// ---- downloads: plain browser links ----
+let blobUrls = [];
+function renderDownloads(r) {
+  blobUrls.forEach((u) => URL.revokeObjectURL(u)); blobUrls = [];
+  const box = document.querySelector(".dl"); box.innerHTML = "";
+  if (!r.ok) { const n = document.createElement("span"); n.className = "note"; n.textContent = "Belum ada file - perbaiki data lalu klik Buat."; box.append(n); return; }
+  const add = (name, data, main) => {
+    const u = URL.createObjectURL(new Blob([data])); blobUrls.push(u);
+    const a = document.createElement("a"); a.href = u; a.download = name; a.className = main ? "btn main" : "btn"; a.textContent = name;
+    box.append(a);
+  };
+  add((($("base").value.trim()) || stem(input.name)) + ".zip", r.zip, true);
+  for (const [name, data] of Object.entries(r.files)) add(name, data, false);
+}
+
+// ---- input file ----
+async function takeFile(f) {
+  if (!f) return;
+  if (!/\.(xlsx|xlsm|json)$/i.test(f.name)) { $("fname").textContent = "Pilih file .xlsx atau .json"; return; }
+  const wasSample = input && input.sample;
+  input = { bytes: new Uint8Array(await f.arrayBuffer()), name: f.name, sample: false };
+  $("fname").textContent = f.name;
+  if (wasSample) for (const k of ["kmz_project", "kode", "nama"]) $(k).value = "";
+  $("base").value = stem(f.name);
+  $("kmz_schema").value = schemaOf(stem(f.name));
+  run();
+}
+$("file").addEventListener("change", (e) => takeFile(e.target.files[0]));
+const drop = $("drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFile(e.dataTransfer.files[0]); });
+
+document.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { $("first").value = b.dataset.f; $("last").value = b.dataset.l; }));
+$("form").addEventListener("submit", (e) => { e.preventDefault(); run(); });
+</script>
+</body>
+</html>

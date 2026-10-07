@@ -1,0 +1,114 @@
+[
+  [
+    "Hub Centenial (Ruang Data Hall: OTB 4, PORT 65&66; Ruang MMAR: Rack A3, OTB 5, PORT 9&10)",
+    "Jl.Gatot Subroto",
+    -6.229934,
+    106.820858,
+    "CABLE 96C/8T, TUBE: BLUE, CORE : YELLOW, VIOLET"
+  ],
+  [
+    "3M 288",
+    "Jl.Guru Mughni",
+    -6.221598,
+    106.820722,
+    "CABLE 288C/24T, TUBE: RED (LAYER 1), CORE : BLUE, ORANGE"
+  ],
+  [
+    "3M 144 (One Pole)",
+    "Jl.Guru Mughni",
+    -6.221598,
+    106.820722,
+    "CABLE 288C/24T, TUBE: RED (LAYER 1), CORE : BLUE, ORANGE"
+  ],
+  [
+    "3M 288",
+    "Jl.Guru Mughni",
+    -6.222341,
+    106.820872,
+    "CABLE 288C/24T, TUBE: AQUA, CORE : GREEN, BROWN"
+  ],
+  [
+    "3M 288",
+    "Jl.Prof.Dr.Satrio",
+    -6.220566,
+    106.820295,
+    "CABLE 288C/24T, TUBE: AQUA, CORE : GREEN, BROWN"
+  ],
+  [
+    "3M 288",
+    "Jl.Prof.Dr.Satrio",
+    -6.220471,
+    106.820558,
+    "CABLE 288C/24T, TUBE: (RED (LAYER 2)),(AQUA(LAYER 2)), CORE : (VIOLET),(BROWN)"
+  ],
+  [
+    "3M 288",
+    "Jl.Bek Murad",
+    -6.216268,
+    106.819218,
+    "CABLE 288C/24T, TUBE: (RED (LAYER 2)),(AQUA(LAYER 2)), CORE : (VIOLET),(BROWN)"
+  ],
+  [
+    "3M 288 (One Pole)",
+    "Jl.Bek Murad",
+    -6.216268,
+    106.819218,
+    "CABLE 96C/8T, TUBE: WHITE, CORE : RED, YELLOW"
+  ],
+  [
+    "3M 288",
+    "Jl.Bek Murad",
+    -6.216153,
+    106.820405,
+    "CABLE 144C/12T, TUBE: WHITE, CORE : RED, YELLOW"
+  ],
+  [
+    "3M 288",
+    "Jl.Bek Murad",
+    -6.21577,
+    106.821903,
+    "CABLE 48C/4T, TUBE: ORANGE, CORE : YELLOW, ROSE"
+  ],
+  [
+    "3M 288",
+    "Jl.Karet Belakang Raya",
+    -6.216104,
+    106.822167,
+    "CABLE 288C/24T, TUBE: ORANGE (LAYER 2), CORE : YELLOW, ROSE"
+  ],
+  [
+    "NWC 144 (One Pole)",
+    "Jl.Karet Belakang Raya",
+    -6.216104,
+    106.822167,
+    "CABLE 144C/12T, TUBE: ORANGE, CORE : YELLOW, VIOLET"
+  ],
+  [
+    "NWC 96",
+    "Jl.Karet Belakang Raya",
+    -6.216125,
+    106.822615,
+    "CABLE 48C/4T, TUBE: BROWN, CORE : YELLOW, VIOLET"
+  ],
+  [
+    "3M 96",
+    "Jl.Karet Belakang Raya",
+    -6.216221,
+    106.824545,
+    "CABLE 24C/4T, TUBE: ORANGE, CORE : BLUE, ORANGE"
+  ],
+  [
+    "Closure Uplink",
+    "Jl.Komando III",
+    -6.215078,
+    106.825337,
+    "CABLE UPLINK, TUBE: -, CORE : BLUE, ORANGE"
+  ],
+  [
+    "OLT CNT08",
+    "Jl.Komando III",
+    -6.215078,
+    106.825337,
+    "-"
+  ]
+]
