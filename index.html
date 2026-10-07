@@ -153,7 +153,6 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         <fieldset>
           <h2>KMZ</h2>
           <label class="f">Nama proyek (popup Google Earth) <input type="text" id="kmz_project" placeholder="mis. BB OLT CNT08 to Hub Centenial"></label>
-          <label class="f">Nama schema (huruf/angka/_) <input type="text" id="kmz_schema" placeholder="mis. CNT08_HubCentenial"></label>
           <div class="row2">
             <label class="f">Folder titik pertama <input type="text" id="first" value="AGG"></label>
             <label class="f">Folder titik terakhir <input type="text" id="last" value="OLT"></label>
@@ -314,7 +313,7 @@ const worker = new Worker("worker.js");
 let input = null;            // {bytes: Uint8Array, name}
 let last = null;             // last result
 let pyReady = false, busy = false, runId = 0;
-const SAMPLE = { kmz_project: "BB OLT CNT08 to Hub Centenial", kmz_schema: "CNT08_HubCentenial", kode: "BB OLT CNT08", nama: "OLT CNT08 to Hub Centenial", base: "CNT08_HubCentenial" };
+const SAMPLE = { kmz_project: "BB OLT CNT08 to Hub Centenial", kode: "BB OLT CNT08", nama: "OLT CNT08 to Hub Centenial", base: "CNT08_HubCentenial" };
 
 function setStatus(text, pct) {
   $("statustext").textContent = text;
@@ -351,7 +350,7 @@ route();
 
 function options() {
   return {
-    base: $("base").value.trim(), kmz_project: $("kmz_project").value.trim(), kmz_schema: $("kmz_schema").value.trim(),
+    base: $("base").value.trim(), kmz_project: $("kmz_project").value.trim(), kmz_schema: schemaOf($("base").value.trim() || stem(input.name)),
     first: $("first").value.trim(), last: $("last").value.trim(), kode: $("kode").value.trim(), nama: $("nama").value.trim(),
     cols: parseInt($("cols").value, 10) || 5,
     xlsx: $("c_xlsx").checked, kmz: $("c_kmz").checked, dxf: $("c_dxf").checked, svg: $("c_svg").checked, json: $("c_json").checked,
@@ -429,7 +428,6 @@ async function takeFile(f) {
   $("fname").textContent = f.name;
   if (wasSample) for (const k of ["kmz_project", "kode", "nama"]) $(k).value = "";
   $("base").value = stem(f.name);
-  $("kmz_schema").value = schemaOf(stem(f.name));
   run();
 }
 $("file").addEventListener("change", (e) => takeFile(e.target.files[0]));
