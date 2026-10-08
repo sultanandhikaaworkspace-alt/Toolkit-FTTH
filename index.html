@@ -76,9 +76,9 @@ button.sec:hover { border-color: var(--accent); }
 .preview svg { width: 100%; min-width: 760px; height: auto; display: block; padding: 8px; }
 .empty { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
 .dl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.dl a.btn { font: 500 13px var(--sans); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; text-decoration: none; overflow-wrap: anywhere; flex: 0 1 auto; }
+.dl a.btn { max-width: max-content; font: 500 13px var(--sans); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; text-decoration: none; overflow-wrap: anywhere; flex: 0 1 auto; }
 .dl a.btn:hover { border-color: var(--accent); }
-.dl a.btn.main { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.dl a.btn.hero { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
 .dl .note { color: var(--muted); font-size: 12px; }
 .warnlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .warnlist li { background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 6px 10px; font-size: 13px; }
@@ -136,7 +136,7 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   </section>
 
   <section id="view-cmld" hidden>
-  <p class="back"><a href="#abd" id="backlink">← Kembali ke ABD</a></p>
+  <p class="back"><a href="#abd" class="backlink">← Kembali ke ABD</a></p>
   <div class="main">
     <div class="panel">
       <form id="form" novalidate>
@@ -216,6 +216,53 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </div>
   </div>
   </section>
+
+  <section id="view-hb" hidden>
+  <p class="back"><a href="#apd" class="backlink">← Kembali ke APD</a></p>
+  <div class="main">
+    <div class="panel">
+      <form id="hbform" novalidate>
+        <fieldset>
+          <h2>Data</h2>
+          <label class="drop" id="hbdrop" for="hbfile">
+            <input type="file" id="hbfile" accept=".xlsx,.xlsm">
+            <strong id="hbfname">Contoh: FXXXXX</strong>
+            <span>Klik atau tarik file Excel ke sini · HB, lalu LINE · PANJANG SB · PANJANG EB</span>
+          </label>
+          <div class="chips"><button type="button" class="chip" id="hbsample">Pakai data contoh</button><button type="button" class="chip" id="hbtpl">Download template Excel</button></div>
+          <label class="f">Nama file DXF <input type="text" id="hbbase" autocomplete="off" placeholder="mis. FXXXXX"></label>
+        </fieldset>
+        <button type="submit" class="primary" id="hbgo" disabled>Buat</button>
+        <fieldset>
+          <h2>Data terbaca</h2>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Row</th><th>Line</th><th>FAT code</th><th>Panjang</th></tr></thead>
+            <tbody id="hbrows"><tr><td colspan="4" class="empty">Belum ada data.</td></tr></tbody>
+          </table></div>
+          <p class="msg">Kode FAT dibuat otomatis dari nama HB: line A/B = S01, C/D = S02, E/F = S03, G/H = S04 (maks 8 line). 01 = SB, 02 = EB; line dengan 1 perangkat: isi satu PANJANG saja, perangkatnya SUB BOX (..01). Format lama (B LINE · C FAT CODE · I PANJANG) tetap terbaca.</p>
+        </fieldset>
+      </form>
+    </div>
+
+    <div class="results">
+      <div class="panel">
+        <div class="summary" id="hbsummary"><span class="source">Menunggu Python siap, lalu data contoh diproses otomatis.</span></div>
+      </div>
+      <div class="panel">
+        <h2>Preview</h2>
+        <div class="preview" id="hbpreview"><div class="empty">Preview muncul di sini setelah diproses.</div></div>
+      </div>
+      <div class="panel">
+        <h2>Download</h2>
+        <div class="dl" id="hbdl"><span class="note">File muncul di sini setelah diproses.</span></div>
+      </div>
+      <div class="panel" id="hbwarnpanel" hidden>
+        <h2>Peringatan data</h2>
+        <ul class="warnlist" id="hbwarnlist"></ul>
+      </div>
+    </div>
+  </div>
+  </section>
 </div>
 
 <script>
@@ -236,7 +283,12 @@ const MENU = {
         { id: "foto", name: "Baca catatan lapangan", status: "plan",
           desc: "Foto catatan tulisan tangan dibaca jadi baris data yang bisa langsung diproses.", io: "foto → .xlsx" },
       ] },
-    { id: "apd", name: "APD", desc: "", lead: "", children: [] },
+    { id: "apd", name: "APD", desc: "", lead: "Semua berjalan di browser ini; file proyek tidak dikirim ke server.",
+      children: [
+        { id: "hb", name: "CMLD CQT", status: "ready",
+          desc: "Diagram HB ke tiap port: setiap line punya FAT SB dan EB lengkap dengan panjang kabel, langsung jadi DXF.",
+          io: ".xlsx (HB · LINE · PANJANG SB/EB) → .dxf" },
+      ] },
   ],
 };
 const NODES = {}, PARENT = {};
@@ -298,8 +350,8 @@ function route() {
   document.querySelectorAll('section[id^="view-"]').forEach((v) => { if (v.id !== "view-menu") v.hidden = !tool || v.id !== "view-" + tool.id; });
   if (tool) {
     const parent = PARENT[tool.id];
-    $("backlink").href = "#" + parent.id; $("backlink").textContent = "← Kembali ke " + parent.name;
-    if (!opened.has(tool.id)) { opened.add(tool.id); if (tool.id === "cmld") run(); }
+    document.querySelectorAll(".backlink").forEach((a) => { a.href = "#" + parent.id; a.textContent = "← Kembali ke " + parent.name; });
+    if (!opened.has(tool.id)) { opened.add(tool.id); if (tool.id === "cmld") run(); if (tool.id === "hb") hbLoadSample(); }
   } else renderGroup(node);
   renderCrumbs(node);
   document.title = node === MENU ? "Toolkit FTTH" : pathOf(node).slice(1).map((n) => n.name).join(" / ") + " · Toolkit FTTH";
@@ -324,14 +376,15 @@ const schemaOf = (s) => s.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
 
 worker.onmessage = (ev) => {
   const m = ev.data;
+  if (m.type === "result" && m.fn === "hb_template") { busy = false; $("go").disabled = false; $("hbgo").disabled = false; setStatus("Siap", 100); hbSaveTemplate(m.result.xlsx); return; }
   if (m.type === "status") {
     setStatus(m.text, m.pct);
-    if (m.pct === 100 && !pyReady) { pyReady = true; $("go").disabled = false; if (opened.has("cmld")) run(); }
+    if (m.pct === 100 && !pyReady) { pyReady = true; $("go").disabled = false; $("hbgo").disabled = false; if (opened.has("cmld")) run(); else if (opened.has("hb")) hbRun(); }
   } else if (m.type === "result") {
-    busy = false; $("go").disabled = false; setStatus("Siap", 100);
-    show(m.result);
+    busy = false; $("go").disabled = false; $("hbgo").disabled = false; setStatus("Siap", 100);
+    if (m.fn === "process_hb") hbShow(m.result); else show(m.result);
   } else if (m.type === "error") {
-    busy = false; $("go").disabled = !pyReady;
+    busy = false; $("go").disabled = !pyReady; $("hbgo").disabled = !pyReady;
     setStatus("Gagal memuat/menjalankan Python", 0);
     $("summary").innerHTML = "";
     $("summary").append(pill("Error: " + m.message, "err"));
@@ -412,7 +465,7 @@ function renderDownloads(r) {
   if (!r.ok) { const n = document.createElement("span"); n.className = "note"; n.textContent = "Belum ada file - perbaiki data lalu klik Buat."; box.append(n); return; }
   const add = (name, data, main) => {
     const u = URL.createObjectURL(new Blob([data])); blobUrls.push(u);
-    const a = document.createElement("a"); a.href = u; a.download = name; a.className = main ? "btn main" : "btn"; a.textContent = name;
+    const a = document.createElement("a"); a.href = u; a.download = name; a.className = main ? "btn hero" : "btn"; a.textContent = name;
     box.append(a);
   };
   add(safeFile(projName()) + ".zip", r.zip, true);
@@ -436,6 +489,90 @@ drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove
 
 document.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { $("first").value = b.dataset.f; $("last").value = b.dataset.l; }));
 $("form").addEventListener("submit", (e) => { e.preventDefault(); run(); });
+
+// ---- Diagram HB ----
+let hbInput = null, hbLast = null;
+async function hbLoadSample() {
+  const buf = new Uint8Array(await (await fetch("contoh_hb.json")).arrayBuffer());
+  hbInput = { bytes: buf, name: "contoh_hb.json", sample: true };
+  $("hbfname").textContent = "Contoh: FXXXXX";
+  $("hbbase").value = "";
+  hbRun();
+}
+function hbRun() {
+  if (!pyReady || busy || !hbInput) return;
+  busy = true; $("hbgo").disabled = true; $("go").disabled = true; setStatus("Memproses…", 100);
+  worker.postMessage({ type: "run", fn: "process_hb", id: ++runId, bytes: hbInput.bytes.slice(0), filename: hbInput.name,
+    options: { base: $("hbbase").value.trim() ? safeFile($("hbbase").value.trim()) : "" } });
+}
+function hbShow(r) {
+  hbLast = r;
+  const sum = $("hbsummary"); sum.innerHTML = "";
+  const src = document.createElement("span"); src.className = "source";
+  src.textContent = (hbInput.sample ? "Contoh: " : "File: ") + hbInput.name; sum.append(src);
+  if (!r.ok) {
+    sum.append(pill(r.log[r.log.length - 1] || "Gagal", "err"));
+    $("hbpreview").innerHTML = '<div class="empty">Tidak ada preview. Periksa kolom B, C, dan I di Excel.</div>';
+  } else {
+    const fats = r.lines.reduce((n, L) => n + (L.sb ? 1 : 0) + (L.eb ? 1 : 0), 0);
+    sum.append(pill("HB " + r.hub), pill(r.lines.length + " port"), pill(Math.ceil(r.lines.length / 2) + " splitter"), pill(fats + " FAT"));
+    sum.append(r.warnings.length ? pill(r.warnings.length + " peringatan", "warn") : pill("Data OK", "ok"));
+    $("hbpreview").innerHTML = r.svg;
+    if (!$("hbbase").value.trim()) $("hbbase").placeholder = stem(r.dxf_name);
+  }
+  const wl = $("hbwarnlist"); wl.innerHTML = "";
+  for (const w of r.warnings) { const li = document.createElement("li"); li.textContent = w; wl.append(li); }
+  $("hbwarnpanel").hidden = !r.warnings.length;
+  const tb = $("hbrows"); tb.innerHTML = "";
+  for (const it of r.items) {
+    const tr = document.createElement("tr");
+    const cells = [[it.row, "num"], [it.first ? it.line : "↳"], [it.code, "coord"], [it.len == null ? "-" : (+it.len) + "m", "num"]];
+    for (const [v, cls] of cells) { const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = v; tr.append(td); }
+    tb.append(tr);
+  }
+  if (!r.items.length) tb.innerHTML = '<tr><td colspan="4" class="empty">Belum ada data.</td></tr>';
+  hbRenderDownloads(r);
+}
+async function hbTakeFile(f) {
+  if (!f) return;
+  if (!/\.(xlsx|xlsm)$/i.test(f.name)) { $("hbfname").textContent = "Pilih file .xlsx"; return; }
+  hbInput = { bytes: new Uint8Array(await f.arrayBuffer()), name: f.name, sample: false };
+  $("hbfname").textContent = f.name;
+  $("hbbase").value = stem(f.name);
+  hbRun();
+}
+$("hbfile").addEventListener("change", (e) => hbTakeFile(e.target.files[0]));
+(() => {
+  const d = $("hbdrop");
+  d.addEventListener("dragover", (e) => { e.preventDefault(); d.classList.add("over"); });
+  d.addEventListener("dragleave", () => d.classList.remove("over"));
+  d.addEventListener("drop", (e) => { e.preventDefault(); d.classList.remove("over"); hbTakeFile(e.dataTransfer.files[0]); });
+})();
+$("hbsample").addEventListener("click", hbLoadSample);
+$("hbform").addEventListener("submit", (e) => { e.preventDefault(); hbRun(); });
+function hbDxfName() { return safeFile($("hbbase").value.trim() || $("hbbase").placeholder || "HB") + ".dxf"; }
+let hbUrl = null;
+function hbRenderDownloads(r) {
+  const box = $("hbdl"); box.innerHTML = "";
+  if (hbUrl) URL.revokeObjectURL(hbUrl);
+  if (!r.ok) { const n = document.createElement("span"); n.className = "note"; n.textContent = "Belum ada file."; box.append(n); return; }
+  hbUrl = URL.createObjectURL(new Blob([r.dxf]));
+  const a = document.createElement("a"); a.className = "btn hero"; a.href = hbUrl; a.textContent = "Save As DXF";
+  a.download = hbDxfName();
+  a.addEventListener("click", () => { a.download = hbDxfName(); });
+  box.append(a);
+}
+
+$("hbtpl").addEventListener("click", () => {
+  if (!pyReady || busy) return;
+  busy = true; setStatus("Membuat template…", 100);
+  worker.postMessage({ type: "run", fn: "hb_template", id: ++runId, bytes: new Uint8Array(1), filename: "x", options: {} });
+});
+function hbSaveTemplate(bytes) {
+  const u = URL.createObjectURL(new Blob([bytes]));
+  const a = document.createElement("a"); a.href = u; a.download = "template_hb.xlsx"; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 5000);
+}
 </script>
 </body>
 </html>
