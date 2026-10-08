@@ -35,16 +35,17 @@ self.onmessage = async (ev) => {
     if (!ready) ready = boot();
     const py = await ready;
     if (msg.type !== "run") return;
-    const process = py.pyimport("cmld.web").process;
+    const process = py.pyimport("cmld.web")[msg.fn || "process"];
     const res = process(msg.bytes, msg.filename, JSON.stringify(msg.options));
     const out = res.toJs({ dict_converter: Object.fromEntries, create_pyproxies: false });
     res.destroy();
     process.destroy();
     const transfer = [];
     if (out.zip) transfer.push(out.zip.buffer);
+    if (out.dxf) transfer.push(out.dxf.buffer);
     for (const k in out.files) transfer.push(out.files[k].buffer);
-    self.postMessage({ type: "result", id: msg.id, result: out }, transfer);
+    self.postMessage({ type: "result", id: msg.id, fn: msg.fn || "process", result: out }, transfer);
   } catch (err) {
-    self.postMessage({ type: "error", id: msg.id, message: String(err && err.message || err) });
+    self.postMessage({ type: "error", id: msg.id, fn: msg && msg.fn, message: String(err && err.message || err) });
   }
 };
