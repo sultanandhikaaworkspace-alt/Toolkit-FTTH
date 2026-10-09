@@ -13,6 +13,7 @@
   --accent: #0b6e75; --accent-fg: #ffffff; --accent-soft: #e2f1f1;
   --warn: #9a5b00; --warn-bg: #fff3d6; --ok: #1d7a3e; --ok-bg: #e3f4e8; --err: #b42318; --err-bg: #fde7e5;
   --dxf-line: #1f2933; --dxf-label: #3b4752; --dxf-spec: #1b5fa8; --dxf-end: #d0342c;
+  --dxf-road: #8a949e; --dxf-orange: #c96a12; --dxf-pole: #2e8b46;
   --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
   --r: 8px;
@@ -22,12 +23,14 @@
   --accent: #4fb8bd; --accent-fg: #0b1a1c; --accent-soft: #173538;
   --warn: #f2b84b; --warn-bg: #3a2c10; --ok: #6fd08f; --ok-bg: #143021; --err: #ff8a80; --err-bg: #3d1b19;
   --dxf-line: #d5dde4; --dxf-label: #aab6c1; --dxf-spec: #6cb2ff; --dxf-end: #ff6b63;
+  --dxf-road: #7d8994; --dxf-orange: #f0952f; --dxf-pole: #3fbf63;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #12171c; --panel: #1a2128; --fg: #e4e9ee; --muted: #93a1ae; --line: #2c3640;
   --accent: #4fb8bd; --accent-fg: #0b1a1c; --accent-soft: #173538;
   --warn: #f2b84b; --warn-bg: #3a2c10; --ok: #6fd08f; --ok-bg: #143021; --err: #ff8a80; --err-bg: #3d1b19;
   --dxf-line: #d5dde4; --dxf-label: #aab6c1; --dxf-spec: #6cb2ff; --dxf-end: #ff6b63;
+  --dxf-road: #7d8994; --dxf-orange: #f0952f; --dxf-pole: #3fbf63;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
@@ -72,6 +75,8 @@ button.sec:hover { border-color: var(--accent); }
 .pill.warn { background: var(--warn-bg); color: var(--warn); }
 .pill.err { background: var(--err-bg); color: var(--err); }
 .source { color: var(--muted); font-size: 13px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 4px 0 8px; line-height: 1.55; }
+.hint a { color: var(--accent); font-weight: 600; }
 .preview { overflow: auto; background: var(--bg); border-radius: 6px; border: 1px solid var(--line); min-height: 220px; display: grid; place-items: center; }
 .preview svg { width: 100%; min-width: 760px; height: auto; display: block; padding: 8px; }
 .empty { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
@@ -217,6 +222,67 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   </div>
   </section>
 
+  <section id="view-drawing" hidden>
+  <p class="back"><a href="#abd" class="backlink">← Kembali</a></p>
+  <div class="main">
+    <div class="panel">
+      <form id="dwform" novalidate>
+        <fieldset>
+          <h2>Data</h2>
+          <label class="drop" id="dwdrop" for="dwfile">
+            <input type="file" id="dwfile" accept=".kmz,.kml,.xlsx,.xlsm,.json">
+            <strong id="dwfname">Pilih file KMZ</strong>
+            <span>Klik atau tarik file .kmz dari lapangan ke sini (Excel Data Mancore juga bisa)</span>
+          </label>
+          <label class="f">Nama file DXF <input type="text" id="dwbase" autocomplete="off" placeholder="otomatis dari nama file"></label>
+        </fieldset>
+        <fieldset>
+          <h2>Peta</h2>
+          <div class="row2">
+            <label class="f">Radius jalan (m) <input type="number" id="dwradius" value="500" min="100" max="2000" step="50"></label>
+            <label class="f">Jumlah HP <input type="text" id="dwhp" autocomplete="off" placeholder="mis. 722"></label>
+          </div>
+          <div class="row2">
+            <label class="f">Tipe OLT <input type="text" id="dwolt" value="OLT" autocomplete="off"></label>
+            <label class="f">Area <input type="text" id="dwarea" autocomplete="off" placeholder="otomatis dari nama KMZ"></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <h2>Data jalan</h2>
+          <p class="hint">Data jalan diambil otomatis dari OpenStreetMap. Kalau gagal (server sibuk): klik <a id="dwosmlink" href="#" target="_blank" rel="noopener">Buka data jalan</a>, simpan (Ctrl+S) sebagai <b>.json</b>, lalu pilih file itu di bawah.</p>
+          <label class="f">File data jalan (.json) <input type="file" id="dwosm" accept=".json,.txt,application/json"></label>
+        </fieldset>
+        <button type="submit" class="primary" id="dwgo" disabled>Buat</button>
+      </form>
+    </div>
+
+    <div class="results">
+      <div class="panel">
+        <div class="summary" id="dwsummary"><span class="source">Pilih file KMZ untuk mulai.</span></div>
+      </div>
+      <div class="panel">
+        <h2>Preview <span class="note">jalan dari OpenStreetMap · koordinat WGS 84 / UTM 48S (QGIS: EPSG:32748)</span></h2>
+        <div class="preview" id="dwpreview"><div class="empty">Preview muncul di sini setelah diproses.</div></div>
+      </div>
+      <div class="panel">
+        <h2>Download</h2>
+        <div class="dl" id="dwdl"><span class="note">File muncul di sini setelah diproses.</span></div>
+      </div>
+      <div class="panel" id="dwwarnpanel" hidden>
+        <h2>Peringatan data</h2>
+        <ul class="warnlist" id="dwwarnlist"></ul>
+      </div>
+      <div class="panel">
+        <h2>Perangkat terbaca</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>#</th><th>Device</th><th>Street</th><th>Lat, Lon</th></tr></thead>
+          <tbody id="dwrows"><tr><td colspan="4" class="empty">Belum ada data.</td></tr></tbody>
+        </table></div>
+        <details style="margin-top:12px"><summary>Log proses</summary><pre class="log" id="dwlog"></pre></details>
+      </div>
+    </div>
+  </div>
+  </section>
   <section id="view-hb" hidden>
   <p class="back"><a href="#apd" class="backlink">← Kembali ke APD</a></p>
   <div class="main">
@@ -278,6 +344,9 @@ const MENU = {
         { id: "cmld", name: "CMLD", status: "ready",
           desc: "Satu file data jadi Excel Data Mancore, KMZ Google Earth, dan diagram DXF, lengkap dengan cek data dan cek tabrakan teks.",
           io: ".xlsx / .json → .xlsx · .kmz · .dxf" },
+        { id: "drawing-abd", view: "drawing", name: "DRAWING", status: "ready",
+          desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
+          io: ".kmz → .dxf (peta)" },
         { id: "pdf", name: "PDF diagram", status: "plan",
           desc: "Diagram jaringan siap cetak dalam PDF, dari data yang sama dengan DXF.", io: ".xlsx / .json → .pdf" },
         { id: "foto", name: "Baca catatan lapangan", status: "plan",
@@ -288,6 +357,9 @@ const MENU = {
         { id: "hb", name: "CMLD CQT", status: "ready",
           desc: "Diagram HB ke tiap port: setiap line punya FAT SB dan EB lengkap dengan panjang kabel, langsung jadi DXF.",
           io: ".xlsx (HB · LINE · PANJANG SB/EB) → .dxf" },
+        { id: "drawing-apd", view: "drawing", name: "DRAWING", status: "ready",
+          desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
+          io: ".kmz → .dxf (peta)" },
       ] },
   ],
 };
@@ -347,7 +419,7 @@ function route() {
   if (!isGroup(node) && node.status !== "ready") node = PARENT[node.id];
   const tool = isGroup(node) ? null : node;
   $("view-menu").hidden = !!tool;
-  document.querySelectorAll('section[id^="view-"]').forEach((v) => { if (v.id !== "view-menu") v.hidden = !tool || v.id !== "view-" + tool.id; });
+  document.querySelectorAll('section[id^="view-"]').forEach((v) => { if (v.id !== "view-menu") v.hidden = !tool || v.id !== "view-" + (tool.view || tool.id); });
   if (tool) {
     const parent = PARENT[tool.id];
     document.querySelectorAll(".backlink").forEach((a) => { a.href = "#" + parent.id; a.textContent = "← Kembali ke " + parent.name; });
@@ -376,10 +448,17 @@ const schemaOf = (s) => s.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
 
 worker.onmessage = (ev) => {
   const m = ev.data;
+  if ((m.type === "result" || m.type === "error") && pending.has(m.id)) {
+    const p = pending.get(m.id); pending.delete(m.id);
+    if (m.type === "result") p.resolve(m.result); else p.reject(new Error(m.message));
+    return;
+  }
+  if (m.type === "result" && m.fn === "process_drawing") { busy = false; dwButtons(true); setStatus("Siap", 100); dwShow(m.result); return; }
+  if (m.type === "error" && m.fn === "process_drawing") { busy = false; dwButtons(true); setStatus("Gagal", 0); dwSummary(m.message, "err"); return; }
   if (m.type === "result" && m.fn === "hb_template") { busy = false; $("go").disabled = false; $("hbgo").disabled = false; setStatus("Siap", 100); hbSaveTemplate(m.result.xlsx); return; }
   if (m.type === "status") {
     setStatus(m.text, m.pct);
-    if (m.pct === 100 && !pyReady) { pyReady = true; $("go").disabled = false; $("hbgo").disabled = false; if (opened.has("cmld")) run(); else if (opened.has("hb")) hbRun(); }
+    if (m.pct === 100 && !pyReady) { pyReady = true; $("go").disabled = false; $("hbgo").disabled = false; $("dwgo").disabled = false; if (opened.has("cmld")) run(); else if (opened.has("hb")) hbRun(); }
   } else if (m.type === "result") {
     busy = false; $("go").disabled = false; $("hbgo").disabled = false; setStatus("Siap", 100);
     if (m.fn === "process_hb") hbShow(m.result); else show(m.result);
@@ -573,6 +652,139 @@ function hbSaveTemplate(bytes) {
   const a = document.createElement("a"); a.href = u; a.download = "template_hb.xlsx"; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(u), 5000);
 }
+// ---- DRAWING (ABD / APD): KMZ -> DXF on an OpenStreetMap road map ----
+const AUTO_OSM = true;
+const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter",
+                  "https://overpass.kumi.systems/api/interpreter"];
+const osmCache = new Map();
+const pending = new Map();
+let dwInput = null, dwLast = null, dwOsm = null;      // dwOsm: {text, file} road data chosen by hand
+function dwButtons(on) { $("dwgo").disabled = !on || !pyReady; }
+function callWorker(fn, inp, opts) {
+  return new Promise((resolve, reject) => {
+    const id = ++runId;
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ type: "run", fn, id, bytes: inp.bytes.slice(0), filename: inp.name, options: opts });
+  });
+}
+async function fetchOsm(query) {
+  if (osmCache.has(query)) return osmCache.get(query);
+  let lastErr = "";
+  for (let round = 0; round < 2; round++) {
+    for (const url of OVERPASS) {
+      try {
+        const r = await fetch(url, { method: "POST", body: new URLSearchParams({ data: query }) });
+        const t = await r.text();
+        if (!r.ok || t.trimStart().startsWith("<")) { lastErr = "server sibuk (" + r.status + ")"; continue; }
+        JSON.parse(t);
+        osmCache.set(query, t);
+        return t;
+      } catch (e) { lastErr = String(e.message || e); }
+    }
+    await new Promise((res) => setTimeout(res, 4000));
+  }
+  throw new Error("data jalan tidak bisa diambil (" + lastErr + ")");
+}
+const dwName = () => safeFile($("dwbase").value.trim() || (dwInput ? stem(dwInput.name) : "DRAWING"));
+function dwOptions() {
+  return { base: dwName(), title: $("dwbase").value.trim() || (dwInput ? stem(dwInput.name) : ""),
+    radius: parseFloat($("dwradius").value) || 500, hp: $("dwhp").value.trim(),
+    olt_type: $("dwolt").value.trim() || "OLT", area: $("dwarea").value.trim() };
+}
+function dwSummary(msg, cls) {
+  const sum = $("dwsummary"); sum.innerHTML = "";
+  const src = document.createElement("span"); src.className = "source";
+  src.textContent = dwInput ? "File: " + dwInput.name : "Belum ada file"; sum.append(src);
+  if (msg) sum.append(pill(msg, cls || "warn"));
+}
+async function dwRun() {
+  if (!pyReady || busy || !dwInput) return;
+  busy = true; dwButtons(false); setStatus("Memproses…", 100);
+  const opts = dwOptions();
+  let note = "";
+  try {
+    const q = await callWorker("peta_query", dwInput, opts);
+    if (!q.ok) throw new Error(q.error);
+    $("dwosmlink").href = OVERPASS[0] + "?data=" + encodeURIComponent(q.query);
+    if (dwOsm) opts.osm = dwOsm.text;
+    else if (AUTO_OSM) { setStatus("Mengambil data jalan OpenStreetMap…", 100); opts.osm = await fetchOsm(q.query); }
+    else note = "Perlu data jalan: ikuti 3 langkah di bagian Data jalan";
+  } catch (e) { note = String(e.message || e); }
+  if (!opts.osm) {
+    busy = false; dwButtons(true); setStatus("Siap", 100);
+    dwSummary(note, "warn");
+    $("dwpreview").innerHTML = '<div class="empty">' + note.replace(/[<>&]/g, "") + "</div>";
+    return;
+  }
+  setStatus("Menggambar peta…", 100);
+  worker.postMessage({ type: "run", fn: "process_drawing", id: ++runId, bytes: dwInput.bytes.slice(0), filename: dwInput.name, options: opts });
+}
+function dwShow(r) {
+  dwLast = r;
+  $("dwlog").textContent = r.log.join("\n");
+  if (!r.ok) {
+    dwSummary(r.log[r.log.length - 1] || "Gagal", "err");
+    $("dwpreview").innerHTML = '<div class="empty">Tidak ada preview.</div>';
+  } else {
+    dwSummary("");
+    const sum = $("dwsummary");
+    sum.append(pill(r.rows.length + " perangkat"));
+    const m = (r.log.join(" ").match(/(\d+) ruas jalan OSM/) || [])[1];
+    if (m) sum.append(pill(m + " ruas jalan"));
+    sum.append(r.warnings.length ? pill(r.warnings.length + " peringatan", "warn") : pill("DXF siap", "ok"));
+    $("dwpreview").innerHTML = r.svg;
+  }
+  const wl = $("dwwarnlist"); wl.innerHTML = "";
+  for (const w of r.warnings) { const li = document.createElement("li"); li.textContent = w; wl.append(li); }
+  $("dwwarnpanel").hidden = !r.warnings.length;
+  const tb = $("dwrows"); tb.innerHTML = "";
+  r.rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    const cells = [[i + 1, "num"], [row[0]], [row[1]], [Number(row[2]).toFixed(6) + ", " + Number(row[3]).toFixed(6), "coord"]];
+    for (const [v, cls] of cells) { const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = v; tr.append(td); }
+    tb.append(tr);
+  });
+  if (!r.rows.length) tb.innerHTML = '<tr><td colspan="4" class="empty">Belum ada data.</td></tr>';
+  dwRenderDownloads(r);
+}
+let dwUrls = [];
+function dwRenderDownloads(r) {
+  dwUrls.forEach((u) => URL.revokeObjectURL(u)); dwUrls = [];
+  const box = $("dwdl"); box.innerHTML = "";
+  if (!r.ok) { const n = document.createElement("span"); n.className = "note"; n.textContent = "Belum ada file."; box.append(n); return; }
+  const add = (name, data, main) => {
+    const u = URL.createObjectURL(new Blob([data])); dwUrls.push(u);
+    const a = document.createElement("a"); a.href = u; a.download = name; a.className = main ? "btn hero" : "btn"; a.textContent = name;
+    box.append(a);
+  };
+  add(r.dxf_name, r.dxf, true);
+  add(stem(r.dxf_name) + ".zip", r.zip, false);
+}
+async function dwTakeFile(f) {
+  if (!f) return;
+  if (!/\.(kmz|kml|xlsx|xlsm|json)$/i.test(f.name)) { $("dwfname").textContent = "Pilih file .kmz"; return; }
+  dwInput = { bytes: new Uint8Array(await f.arrayBuffer()), name: f.name };
+  dwOsm = null; $("dwosm").value = "";
+  $("dwfname").textContent = f.name;
+  $("dwbase").value = stem(f.name);
+  dwRun();
+}
+$("dwfile").addEventListener("change", (e) => dwTakeFile(e.target.files[0]));
+(() => {
+  const d = $("dwdrop");
+  d.addEventListener("dragover", (e) => { e.preventDefault(); d.classList.add("over"); });
+  d.addEventListener("dragleave", () => d.classList.remove("over"));
+  d.addEventListener("drop", (e) => { e.preventDefault(); d.classList.remove("over"); dwTakeFile(e.dataTransfer.files[0]); });
+})();
+$("dwosm").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const t = await f.text();
+  try { const j = JSON.parse(t); if (!Array.isArray(j.elements)) throw 0; }
+  catch (_) { dwSummary("File data jalan tidak valid (harus JSON dari 'Buka data jalan')", "err"); return; }
+  dwOsm = { text: t, file: f.name };
+  dwRun();
+});
+$("dwform").addEventListener("submit", (e) => { e.preventDefault(); dwRun(); });
 </script>
 </body>
 </html>
