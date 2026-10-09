@@ -23,7 +23,11 @@ async function boot() {
   status("Menyiapkan program CMLD…", 90);
   const src = await (await fetch(BASE + "cmld_py.json")).json();
   py.FS.mkdirTree("/home/pyodide/app/cmld");
-  for (const [path, text] of Object.entries(src)) py.FS.writeFile("/home/pyodide/app/" + path, text);
+  for (const [path, text] of Object.entries(src)) {
+    const full = "/home/pyodide/app/" + path;
+    py.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
+    py.FS.writeFile(full, text);
+  }
   py.runPython("import sys; sys.path.insert(0, '/home/pyodide/app'); import cmld.web, ezdxf, openpyxl");
   status("Siap", 100);
   return py;
