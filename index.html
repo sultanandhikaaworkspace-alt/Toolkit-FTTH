@@ -1231,7 +1231,9 @@ function peBuildCols() {
     for (const d of peKids(ed, "Data")) { const n = d.getAttribute("name"); if (!seen.has(n)) seen.set(n, peKid(d, "displayName")?.textContent || n); }
   }
   const hasDesc = f.pms.some((r) => peKid(r.el, "description"));
-  PE.cols = [{ k: "__name", label: "Nama" }, ...(hasDesc ? [{ k: "__desc", label: "Deskripsi" }] : []), ...[...seen].map(([k, label]) => ({ k, label }))];
+  const fields = [...seen].map(([k, label]) => ({ k, label }));
+  // with popup fields the placemark name only repeats Pole ID / position, so the table shows just the fields (the name stays editable in the map popup)
+  PE.cols = fields.length ? fields : [{ k: "__name", label: "Nama" }, ...(hasDesc ? [{ k: "__desc", label: "Deskripsi" }] : [])];
 }
 
 // ---- find: text, one column or all, exact or contains ----
@@ -1327,7 +1329,8 @@ function peAutoTpl(f) {
     const c = r.geom === "Point" && r.coords[0] && r.coords[0][0];
     const set = (k, v) => { r.orig[k] = ""; peSet(r, k, v); };
     if (c) { if (fields.includes("Coordinate__Lat__NEW")) set("Coordinate__Lat__NEW", c[1].toFixed(6)); if (fields.includes("Coordinate__Long__NEW")) set("Coordinate__Long__NEW", c[0].toFixed(6)); }
-    if (t === PE_TPL[0]) set("Pole_ID__New_", peGet(r, "__name") || "");
+    const nm0 = (peGet(r, "__name") || "").trim();
+    if (t === PE_TPL[0] && /^\d+[A-Z]{0,2}\*?$/i.test(nm0)) set("Pole_ID__New_", nm0);     // only when the name already is a pole ID (1A, 31B)
     if (t === PE_TPL[1] || t === PE_TPL[2]) {
       set("FAT_ID_NETWORK_ID", peGet(r, "__name") || "");
       const p = c && pePoleAt(c);                 // FAT / FDT sits on a pole: take that pole's ID and position
@@ -1369,8 +1372,8 @@ $("pefrepgo").onclick = () => {
   $("pefindres").prepend(Object.assign(document.createElement("span"), { className: "pill ok", textContent: n + " sel diganti" }));
 };
 $("pecopy").onclick = async () => {
-  const rows = peRows(), head = ["Posisi", ...PE.cols.map((c) => c.label)];
-  const tsv = [head, ...rows.map((r) => [pePos(r), ...PE.cols.map((c) => (peGet(r, c.k) ?? "").replace(/[\t\n]/g, " "))])].map((l) => l.join("\t")).join("\n");
+  const rows = peRows(), head = PE.cols.map((c) => c.label);
+  const tsv = [head, ...rows.map((r) => [...PE.cols.map((c) => (peGet(r, c.k) ?? "").replace(/[\t\n]/g, " "))])].map((l) => l.join("\t")).join("\n");
   let ok = false;
   try { await navigator.clipboard.writeText(tsv); ok = true; } catch (e) {
     const ta = document.createElement("textarea"); ta.value = tsv; document.body.append(ta); ta.select(); try { ok = document.execCommand("copy"); } catch (e2) {} ta.remove();
@@ -1665,7 +1668,7 @@ const pgColName = (c) => { let s = ""; c++; while (c) { const m = (c - 1) % 26; 
 
 function peRows() {
   const f = peFind();
-  let rows = f.q ? PE.cur.pms.filter((r) => peHitKeys(r, PE.cols, f).length) : PE.cur.pms.slice();
+  let rows = f.q ? PE.cur.pms.filter((r) => peHitKeys(r, peFindCols(), f).length) : PE.cur.pms.slice();
   if (PE.sort && PE.cols.some((c) => c.k === PE.sort.k)) {
     const k = PE.sort.k, d = PE.sort.dir, cmp = new Intl.Collator("id", { numeric: true, sensitivity: "base" }).compare;
     rows.sort((a, b) => d * cmp(peGet(a, k) || "", peGet(b, k) || ""));
@@ -1682,7 +1685,6 @@ function peRenderTable() {
   all.onchange = () => { rows.forEach((r) => all.checked ? PE.sel.add(r) : PE.sel.delete(r)); peRenderTable(); peRenderMap(); };
   h0.append(all); hr.append(h0);
   const hn = document.createElement("th"); hn.className = "rn corner"; hn.title = "Pilih semua sel (Ctrl+A)"; hn.dataset.all = "1"; hr.append(hn);
-  const hp = document.createElement("th"); hp.className = "pos"; hp.textContent = "Posisi"; hr.append(hp);
   PE.cols.forEach((c, j) => {
     const h = document.createElement("th"); h.dataset.c = j; h.className = "col";
     const top = document.createElement("div"); top.className = "ch";
@@ -1710,7 +1712,6 @@ function peRenderTable() {
     };
     c0.append(cb); tr.append(c0);
     const rn = document.createElement("td"); rn.className = "rn"; rn.dataset.row = i; rn.textContent = i + 1; tr.append(rn);
-    const cp = document.createElement("td"); cp.className = "ro"; cp.textContent = pePos(r); tr.append(cp);
     const line = [];
     PE.cols.forEach((c, j) => {
       const td = document.createElement("td"); const v = peGet(r, c.k);
@@ -1721,7 +1722,7 @@ function peRenderTable() {
     });
     G.cells.push(line); tb.append(tr);
   });
-  if (!rows.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = PE.cols.length + 3; td.className = "empty"; td.textContent = "Tidak ada baris."; tr.append(td); tb.append(tr); }
+  if (!rows.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = PE.cols.length + 2; td.className = "empty"; td.textContent = "Tidak ada baris."; tr.append(td); tb.append(tr); }
   t.append(tb); box.innerHTML = ""; box.append(t);
   PE.visible = rows; peCount();
   const nr = rows.length, nc = PE.cols.length;
@@ -1978,6 +1979,9 @@ function pgPick(v) {                                     // writes to every sele
   pgRefresh(); pgPaint(); peFxShow(); pgFocusGrid();
 }
 $("pegrid").addEventListener("scroll", () => { if (G.menu) pgCloseList(); });
+
+// the name column is hidden once a folder has popup fields; search still looks at the name
+function peFindCols() { return PE.cols.some((c) => c.k === "__name") ? PE.cols : [{ k: "__name", label: "Nama" }, ...PE.cols]; }
 
 </script>
 </body>
