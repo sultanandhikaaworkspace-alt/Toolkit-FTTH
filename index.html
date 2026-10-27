@@ -215,6 +215,13 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
 .pe-grid td.editing { padding: 0; outline: 2px solid var(--accent); outline-offset: -2px; overflow: visible; }
 .pe-cellin { width: 100%; min-width: 120px; height: 100%; border: 0; outline: none; font: 12.5px var(--sans); color: var(--fg); background: var(--panel); padding: 4px 8px; user-select: text; -webkit-user-select: text; }
 .pe-fillh { position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; background: var(--accent); border: 1px solid var(--panel); cursor: crosshair; z-index: 2; }
+.pe-grid { position: relative; }
+.pe-dd { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 3px; font-size: 11px; line-height: 1; padding: 3px 4px; cursor: pointer; z-index: 2; }
+.pe-dd:hover { border-color: var(--accent); color: var(--accent); }
+.pe-ddmenu { position: absolute; z-index: 6; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 6px 18px rgba(0,0,0,.18); padding: 3px 0; max-height: 220px; overflow: auto; }
+.pe-ddmenu .opt { padding: 5px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.pe-ddmenu .opt:hover, .pe-ddmenu .opt.on { background: var(--accent-soft); color: var(--fg); }
+.pe-grid td.act:has(.pe-dd) { padding-right: 26px; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -471,7 +478,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
-      <p class="hint">Seperti Excel: klik / tarik untuk memilih sel, langsung ketik untuk mengisi, F2 atau klik dua kali untuk edit, Delete untuk mengosongkan, Ctrl+C / Ctrl+V untuk salin-tempel (juga dari Excel), tarik kotak kecil di pojok sel untuk mengisi ke bawah (1A → 2A → 3A), Ctrl+D isi ke bawah, Ctrl+Z undo. Klik ↕ di judul kolom untuk mengurutkan. Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
+      <p class="hint">Seperti Excel: klik / tarik untuk memilih sel, langsung ketik untuk mengisi, F2 atau klik dua kali untuk edit, Delete untuk mengosongkan, Ctrl+C / Ctrl+V untuk salin-tempel (juga dari Excel), tarik kotak kecil di pojok sel untuk mengisi ke bawah (1A → 2A → 3A), Ctrl+D isi ke bawah, Ctrl+Z undo. Klik ↕ di judul kolom untuk mengurutkan. Kolom Pole Type punya daftar pilihan (klik ▾ atau Alt+↓). Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
       <div class="pe-body">
         <div class="pe-sheet">
           <div class="pe-fx">
@@ -1727,7 +1734,7 @@ function peCount() { $("pecount").textContent = `${PE.visible.length} baris tamp
 function pgPaint() {
   for (const td of G.painted) td.classList.remove("in", "act", "top", "bot", "lft", "rgt");
   G.painted = [];
-  const old = $("pegrid").querySelector(".pe-fillh"); if (old) old.remove();
+  $("pegrid").querySelectorAll(".pe-fillh, .pe-dd").forEach((x) => x.remove());
   if (!PE.visible || !PE.visible.length || !PE.cols.length) return;
   const { r0, r1, c0, c1 } = pgRange();
   for (let i = r0; i <= r1; i++) for (let c = c0; c <= c1; c++) {
@@ -1738,6 +1745,7 @@ function pgPaint() {
     G.painted.push(td);
   }
   const a = pgCell(G.fr, G.fc); if (a) { a.classList.add("act"); G.painted.push(a); }
+  if (a && !G.edit && pgListFor(PE.cols[G.fc]?.k)) { const d = document.createElement("button"); d.type = "button"; d.className = "pe-dd"; d.title = "Pilih dari daftar (Alt+↓)"; d.textContent = "▾"; a.append(d); }
   const br = pgCell(r1, c1);
   if (br && !G.edit) { const h = document.createElement("i"); h.className = "pe-fillh"; h.title = "Tarik ke bawah untuk mengisi (seperti Excel)"; br.append(h); }
   if (G.drag && G.drag.fill) for (let i = r1 + 1; i <= G.drag.to; i++) for (let c = c0; c <= c1; c++) { const td = pgCell(i, c); if (td) { td.classList.add("in"); G.painted.push(td); } }
@@ -1746,7 +1754,7 @@ function pgRefresh() {                     // re-read every visible cell value (
   PE.visible.forEach((r, i) => PE.cols.forEach((c, j) => {
     const td = pgCell(i, j); if (!td || td === G.edit?.td) return;
     const v = peGet(r, c.k) ?? "";
-    if (td.firstChild?.nodeType !== 3 || td.firstChild.data !== v) { const h = td.querySelector(".pe-fillh"); td.textContent = v; if (h) td.append(h); }
+    if (td.firstChild?.nodeType !== 3 || td.firstChild.data !== v) { const h = [...td.querySelectorAll(".pe-fillh, .pe-dd")]; td.textContent = v; td.append(...h); }
     td.classList.toggle("chg", c.k in r.orig && r.orig[c.k] !== v);
   }));
   peSummary();
@@ -1800,6 +1808,9 @@ const grid = $("pegrid");
 grid.tabIndex = 0;
 grid.addEventListener("mousedown", (ev) => {
   if (ev.target.closest("input[type=checkbox], button.sort, .pe-cellin")) return;
+  if (ev.target.closest(".pe-ddmenu")) return;
+  if (ev.target.closest(".pe-dd")) { ev.preventDefault(); pgFocusGrid(); G.menu ? pgCloseList() : pgOpenList(); return; }
+  pgCloseList();
   const fh = ev.target.closest(".pe-fillh");
   if (fh) { ev.preventDefault(); const { r1 } = pgRange(); G.drag = { fill: true, to: r1 }; return; }
   const td = ev.target.closest("td[data-c]"), rn = ev.target.closest("td.rn"), th = ev.target.closest("th.col"), corner = ev.target.closest("th.corner");
@@ -1856,6 +1867,14 @@ function pgFill(from, to, series) {
 grid.addEventListener("keydown", (ev) => {
   if (G.edit) return;                                    // the cell input handles its own keys
   if (ev.target !== grid) return;
+  if (G.menu) {
+    const m = G.menu;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); m.i = (m.i + (ev.key === "ArrowDown" ? 1 : -1) + m.opts.length) % m.opts.length; pgPaintList(); return; }
+    if (ev.key === "Enter" || ev.key === "Tab") { ev.preventDefault(); pgPick(m.opts[m.i]); return; }
+    if (ev.key === "Escape") { ev.preventDefault(); pgCloseList(); return; }
+    pgCloseList();
+  }
+  if (ev.altKey && ev.key === "ArrowDown" && pgListFor(PE.cols[G.fc]?.k)) { ev.preventDefault(); pgOpenList(); return; }
   const ctrl = ev.ctrlKey || ev.metaKey, k = ev.key, nr = PE.visible.length, nc = PE.cols.length;
   if (!nr || !nc) return;
   const mv = (dr, dc) => {
@@ -1927,6 +1946,35 @@ $("pefx").addEventListener("keydown", (ev) => {
 $("pefx").addEventListener("change", () => { const r = PE.visible[G.fr], c = PE.cols[G.fc]; if (r && c && $("pefx").value !== (peGet(r, c.k) ?? "")) pgTx(() => peWrite(r, c.k, $("pefx").value)); });
 $("peundo").onclick = () => pgUndo(false);
 $("peredo").onclick = () => pgUndo(true);
+
+// ---- pick lists (like Excel data validation): Pole Type ----
+const PE_LISTS = [{ test: /pole.?type/i, opts: ["POLE 7/250", "POLE 7/200", "POLE 8/200", "-"] }];
+function pgListFor(k) { if (!k || k[0] === "_") return null; const l = PE_LISTS.find((x) => x.test.test(k)); return l ? l.opts : null; }
+function pgOpenList() {
+  pgCloseList();
+  const c = PE.cols[G.fc], opts = c && pgListFor(c.k), td = pgCell(G.fr, G.fc); if (!opts || !td) return;
+  const cur = peGet(PE.visible[G.fr], c.k) ?? "";
+  const box = document.createElement("div"); box.className = "pe-ddmenu"; box.setAttribute("role", "listbox");
+  const g = $("pegrid"), tr = td.getBoundingClientRect(), gr = g.getBoundingClientRect();
+  box.style.left = (tr.left - gr.left + g.scrollLeft) + "px"; box.style.top = (tr.bottom - gr.top + g.scrollTop) + "px"; box.style.minWidth = tr.width + "px";
+  opts.forEach((o, i) => {
+    const b = document.createElement("div"); b.className = "opt"; b.setAttribute("role", "option"); b.textContent = o; b.dataset.i = i;
+    b.addEventListener("mousedown", (ev) => { ev.preventDefault(); ev.stopPropagation(); pgPick(o); });
+    box.append(b);
+  });
+  g.append(box);
+  G.menu = { box, opts, i: Math.max(0, opts.indexOf(cur)) };
+  pgPaintList();
+}
+function pgPaintList() { const m = G.menu; if (!m) return; [...m.box.children].forEach((b, i) => b.classList.toggle("on", i === m.i)); m.box.children[m.i]?.scrollIntoView({ block: "nearest" }); }
+function pgCloseList() { if (G.menu) { G.menu.box.remove(); G.menu = null; } }
+function pgPick(v) {                                     // writes to every selected cell of a list column
+  pgCloseList();
+  const { r0, r1, c0, c1 } = pgRange();
+  pgTx(() => { for (let i = r0; i <= r1; i++) for (let c = c0; c <= c1; c++) if (pgListFor(PE.cols[c].k)) peWrite(PE.visible[i], PE.cols[c].k, v); });
+  pgRefresh(); pgPaint(); peFxShow(); pgFocusGrid();
+}
+$("pegrid").addEventListener("scroll", () => { if (G.menu) pgCloseList(); });
 
 </script>
 </body>
