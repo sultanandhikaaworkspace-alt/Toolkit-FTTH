@@ -466,6 +466,8 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
         <div class="grp">
           <b>Tabel</b>
           <button type="button" class="sec" id="pecopy">Salin ke Excel</button>
+          <button type="button" class="sec" id="peroute" title="Urutkan baris mengikuti garis kabel, mulai dari OLT (feeder) atau FDT / HUB BOX">Urutkan ikut kabel</button>
+          <label class="pe-ck" title="Isi Pole ID dan nama titik 1A, 2A, 3A … sesuai urutan; huruf mengikuti provider (A=LN, B=Alita, C=FMI, D=MyRep, E=MTI, G=XL, P=PLN)"><input type="checkbox" id="perouteid"> + nomori Pole ID</label>
         </div>
         <div class="grp pe-find">
           <b>Cari &amp; ganti</b>
@@ -1639,6 +1641,65 @@ $("pecoldelgo").onclick = () => {
   if ($("pebfield").value === k) $("pebfield").value = "__name";
   peBuildCols(); peRenderTools(); peRenderTable(); peRenderPop(); peRenderMap(); peSummary();
   $("pecount").textContent = `Kolom "${label}" dihapus dari ${n} titik.`;
+};
+
+// ---- order a folder along the cable: start at the OLT (feeder) or the FDT / HUB BOX, then follow the lines ----
+const PE_PROV_LETTER = [[/ALITA/i, "B"], [/FMI/i, "C"], [/MY\s*REP/i, "D"], [/MTI/i, "E"], [/\bXL\b/i, "G"], [/PLN/i, "P"], [/\bLN\b|LINK\s*NET/i, "A"]];
+function peRouteStart() {
+  const pts = (re) => PE.folders.filter((f) => re.test(f.name)).flatMap((f) => f.pms).concat(PE.all.filter((r) => re.test(peGet(r, "__name") || "")))
+    .filter((r) => r.geom === "Point" && r.coords[0]);
+  for (const [re, label] of [[/\bOLT\b/i, "OLT"], [/\bFDT\b/i, "FDT"], [/HUB\s*BOX|\bHB\b/i, "HUB BOX"]]) { const p = pts(re)[0]; if (p) return { p, label }; }
+  return null;
+}
+function peRouteOrder(recs) {
+  const st = peRouteStart(); if (!st) return { err: "Tidak ada titik OLT, FDT atau HUB BOX untuk titik awal." };
+  const lat0 = st.p.coords[0][0][1], kx = Math.cos(lat0 * Math.PI / 180) * 111320, M = (c) => [c[0] * kx, c[1] * 110540];
+  const S = M(st.p.coords[0][0]);
+  const cableF = PE.folders.filter((f) => /CABLE|KABEL/i.test(f.name) && !/DROP/i.test(f.name));
+  let lines = (cableF.length ? cableF.flatMap((f) => f.pms) : PE.all.filter((r) => !/SLING|BOUNDARY/i.test(peGet(r, "__name") || "")))
+    .filter((r) => r.geom === "LineString" && r.coords[0] && r.coords[0].length > 1)
+    .map((r) => { let p = r.coords[0].map(M); if (Math.hypot(p.at(-1)[0] - S[0], p.at(-1)[1] - S[1]) < Math.hypot(p[0][0] - S[0], p[0][1] - S[1])) p = p.reverse();
+      const cum = [0]; for (let i = 1; i < p.length; i++) cum.push(cum[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+      return { p, cum, name: peGet(r, "__name") || "", d0: Math.hypot(p[0][0] - S[0], p[0][1] - S[1]) }; });
+  const cmp = new Intl.Collator("id", { numeric: true }).compare;
+  lines.sort((a, b) => (Math.round(a.d0 / 25) - Math.round(b.d0 / 25)) || cmp(a.name, b.name));
+  const proj = (q, L) => { let best = [Infinity, 0];
+    for (let i = 1; i < L.p.length; i++) { const [ax, ay] = L.p[i - 1], [bx, by] = L.p[i], dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((q[0] - ax) * dx + (q[1] - ay) * dy) / l2)), d = Math.hypot(ax + dx * t - q[0], ay + dy * t - q[1]);
+      if (d < best[0]) best = [d, L.cum[i - 1] + t * Math.sqrt(l2)]; }
+    return best; };
+  const keyed = recs.map((r, idx) => {
+    const c = r.geom === "Point" && r.coords[0] ? r.coords[0][0] : r.coords[0]?.[0]; if (!c) return { r, k: [9, 0, idx] };
+    const q = M(c), dS = Math.hypot(q[0] - S[0], q[1] - S[1]);
+    if (dS < 8) return { r, k: [0, 0, dS] };                       // the pole at the OLT / FDT itself
+    let bl = -1, bd = Infinity, bc = 0;
+    lines.forEach((L, li) => { const [d, ch] = proj(q, L); if (d < bd - 0.5) { bd = d; bl = li; bc = ch; } });
+    return bl >= 0 && bd <= 40 ? { r, k: [1, bl, bc] } : { r, k: [2, 0, dS] };
+  });
+  keyed.sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2]);
+  return { order: keyed.map((x) => x.r), start: st.label, lines: lines.length, off: keyed.filter((x) => x.k[0] === 2).length };
+}
+$("peroute").onclick = () => {
+  const f = PE.cur; if (!f) return;
+  const res = peRouteOrder(f.pms);
+  if (res.err) { $("pecount").textContent = res.err; return; }
+  // reorder the placemarks inside the KML folder too, so Google Earth lists them in the same order
+  const first = f.pms.map((r) => r.el).find((el) => el.parentNode === f.el);
+  const anchor = first ? first.previousSibling : null;
+  let at = anchor;
+  for (const r of res.order) { f.el.insertBefore(r.el, at ? at.nextSibling : f.el.firstChild); at = r.el; }
+  f.pms.splice(0, f.pms.length, ...res.order);
+  PE.dirty = true; PE.sort = null;
+  let n = 0;
+  if ($("perouteid").checked) pgTx(() => {
+    const idk = PE.cols.find((c) => /pole.?id/i.test(c.k))?.k, pk = PE.cols.find((c) => /provider/i.test(c.k))?.k;
+    res.order.forEach((r, i) => {
+      const prov = pk ? peGet(r, pk) || "" : "", L = (PE_PROV_LETTER.find(([re]) => re.test(prov)) || [0, "A"])[1], id = (i + 1) + L;
+      if (idk) peWrite(r, idk, id); peWrite(r, "__name", id); n++;
+    });
+  });
+  peRenderTable(); peRenderMap(); peRenderPop(); peSummary();
+  $("pecount").textContent = `Diurutkan dari ${res.start} mengikuti ${res.lines} garis kabel` + (res.off ? ` (${res.off} titik jauh dari kabel ditaruh di akhir)` : "") + (n ? `, Pole ID 1… ${n} diisi.` : ".");
 };
 
 // ---- spreadsheet grid (Excel-like): select with mouse/keys, type to edit, copy/paste blocks, fill handle, undo ----
