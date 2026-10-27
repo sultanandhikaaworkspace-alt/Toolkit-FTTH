@@ -145,8 +145,6 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pe-grid thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--fg); }
 .pe-grid thead th small { display: block; font: 10.5px var(--mono); color: var(--muted); font-weight: 400; }
 .pe-grid td { padding: 0; border-right: 1px solid var(--line); white-space: nowrap; }
-.pe-grid td[contenteditable] { padding: 5px 8px; min-width: 80px; outline: none; cursor: text; }
-.pe-grid td[contenteditable]:focus { box-shadow: inset 0 0 0 2px var(--accent); background: var(--bg); }
 .pe-grid td.ro { padding: 5px 8px; color: var(--muted); font: 11.5px var(--mono); }
 .pe-grid td.ck { padding: 5px 6px; text-align: center; }
 .pe-grid td.chg { background: var(--warn-bg); }
@@ -183,6 +181,40 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pe-findres:empty { display: none; }
 #pecoldel { font: 13px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 170px; }
 button.sec.danger { border-color: var(--err); color: var(--err); background: var(--err-bg); }
+
+/* ---- spreadsheet grid ---- */
+.pe-sheet { min-width: 0; display: grid; gap: 6px; }
+.pe-fx { display: flex; gap: 6px; align-items: center; }
+.pe-fx button.sec { padding: 5px 9px; font-size: 15px; line-height: 1; }
+.pe-fx .ref { font: 12px var(--mono); color: var(--muted); white-space: nowrap; min-width: 150px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.pe-fx input { flex: 1; min-width: 0; font: 13px var(--mono); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; }
+.pe-grid { outline: none; user-select: none; -webkit-user-select: none; }
+.pe-grid:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft); }
+.pe-grid table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+.pe-grid th, .pe-grid td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.pe-grid thead th { background: var(--bg); padding: 4px 8px; vertical-align: bottom; }
+.pe-grid th .ch { display: flex; align-items: center; gap: 6px; }
+.pe-grid th .cl { font: 10.5px var(--mono); color: var(--muted); }
+.pe-grid th .lab { flex: 1; }
+.pe-grid th.col { cursor: s-resize; }
+.pe-grid button.sort { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0 2px; }
+.pe-grid button.sort:hover { color: var(--accent); }
+.pe-grid td[data-c] { padding: 4px 8px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; cursor: cell; position: relative; height: 27px; }
+.pe-grid td.rn, .pe-grid th.rn { background: var(--bg); color: var(--muted); font: 11px var(--mono); text-align: right; padding: 4px 6px; cursor: e-resize; min-width: 34px; position: sticky; left: 30px; z-index: 1; }
+.pe-grid thead th.rn { z-index: 3; cursor: pointer; }
+.pe-grid td.ck, .pe-grid th.ck { width: 30px; min-width: 30px; max-width: 30px; position: sticky; left: 0; z-index: 1; background: var(--panel); text-align: center; }
+.pe-grid thead th.ck { z-index: 3; background: var(--bg); }
+.pe-grid td.in { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.pe-grid td.in.top { box-shadow: inset 0 2px 0 var(--accent); }
+.pe-grid td.in.bot { box-shadow: inset 0 -2px 0 var(--accent); }
+.pe-grid td.in.top.bot { box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent); }
+.pe-grid td.in.lft { border-left: 2px solid var(--accent); }
+.pe-grid td.in.rgt { border-right: 2px solid var(--accent); }
+.pe-grid td.act { background: var(--panel); outline: 2px solid var(--accent); outline-offset: -2px; }
+.pe-grid td.chg.in, .pe-grid td.chg.act { background: color-mix(in srgb, var(--warn-bg) 70%, var(--accent) 12%); }
+.pe-grid td.editing { padding: 0; outline: 2px solid var(--accent); outline-offset: -2px; overflow: visible; }
+.pe-cellin { width: 100%; min-width: 120px; height: 100%; border: 0; outline: none; font: 12.5px var(--sans); color: var(--fg); background: var(--panel); padding: 4px 8px; user-select: text; -webkit-user-select: text; }
+.pe-fillh { position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; background: var(--accent); border: 1px solid var(--panel); cursor: crosshair; z-index: 2; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -439,9 +471,17 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
-      <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
+      <p class="hint">Seperti Excel: klik / tarik untuk memilih sel, langsung ketik untuk mengisi, F2 atau klik dua kali untuk edit, Delete untuk mengosongkan, Ctrl+C / Ctrl+V untuk salin-tempel (juga dari Excel), tarik kotak kecil di pojok sel untuk mengisi ke bawah (1A → 2A → 3A), Ctrl+D isi ke bawah, Ctrl+Z undo. Klik ↕ di judul kolom untuk mengurutkan. Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
       <div class="pe-body">
-        <div class="pe-grid" id="pegrid"></div>
+        <div class="pe-sheet">
+          <div class="pe-fx">
+            <button type="button" class="sec" id="peundo" title="Undo (Ctrl+Z)">↶</button>
+            <button type="button" class="sec" id="peredo" title="Redo (Ctrl+Y)">↷</button>
+            <span class="ref" id="pefxref"></span>
+            <input type="text" id="pefx" autocomplete="off" spellcheck="false" aria-label="Isi sel aktif">
+          </div>
+          <div class="pe-grid" id="pegrid"></div>
+        </div>
         <div class="pe-map">
           <svg id="pemap" role="img" aria-label="Peta titik KMZ"></svg>
           <div class="legend"><span><i style="background:var(--accent)"></i>folder ini</span><span><i style="background:var(--dxf-orange)"></i>dicentang</span><span><i style="background:var(--dxf-road)"></i>lainnya</span><span>scroll = zoom, geser = pindah</span></div>
@@ -469,7 +509,7 @@ const MENU = {
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
         { id: "popup-abd", view: "popup", name: "EDIT POPUP KMZ", status: "ready",
-          desc: "Buka KMZ, edit isi popup tiap titik/garis langsung di tabel (bisa tempel dari Excel, isi massal, template POLE/FAT/FDT), lihat titiknya di peta, lalu download KMZ lagi.",
+          desc: "Buka KMZ, edit isi popup tiap titik/garis di tabel seperti Excel (pilih sel, salin-tempel, tarik isi, undo, cari & ganti), lihat titiknya di peta, lalu download KMZ lagi.",
           io: ".kmz → .kmz (popup)" },
         { id: "pdf", name: "PDF diagram", status: "plan",
           desc: "Diagram jaringan siap cetak dalam PDF, dari data yang sama dengan DXF.", io: ".xlsx / .json → .pdf" },
@@ -485,7 +525,7 @@ const MENU = {
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
         { id: "popup-apd", view: "popup", name: "EDIT POPUP KMZ", status: "ready",
-          desc: "Buka KMZ, edit isi popup tiap titik/garis langsung di tabel (bisa tempel dari Excel, isi massal, template POLE/FAT/FDT), lihat titiknya di peta, lalu download KMZ lagi.",
+          desc: "Buka KMZ, edit isi popup tiap titik/garis di tabel seperti Excel (pilih sel, salin-tempel, tarik isi, undo, cari & ganti), lihat titiknya di peta, lalu download KMZ lagi.",
           io: ".kmz → .kmz (popup)" },
       ] },
   ],
@@ -1161,7 +1201,7 @@ function peRenderFolders() {
 }
 
 function peSelectFolder(f) {
-  PE.cur = f; PE.sel = new Set(); PE.hot = null; PE.pop = null; peRenderPop(); if (!PE.keepFind) $("pefilter").value = ""; PE.keepFind = false;
+  PE.cur = f; PE.sel = new Set(); PE.hot = null; PE.sort = null; Object.assign(G, { ar: 0, ac: 0, fr: 0, fc: 0 }); PE.pop = null; peRenderPop(); if (!PE.keepFind) $("pefilter").value = ""; PE.keepFind = false;
   // folder schema = most used SchemaData schemaUrl among its placemarks
   const cnt = {};
   for (const r of f.pms) for (const sd of peKids(peKid(r.el, "ExtendedData"), "SchemaData")) { const u = (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, ""); cnt[u] = (cnt[u] || 0) + 1; }
@@ -1193,11 +1233,6 @@ function peHitKeys(r, cols, f) {
   if (!f.q) return [];
   const use = f.col === "*" ? cols : cols.filter((c) => c.k === f.col);
   return use.filter((c) => { const v = (peGet(r, c.k) || "").trim().toLowerCase(); return f.exact ? v === f.q : v.includes(f.q); }).map((c) => c.k);
-}
-function peRows() {
-  const f = peFind();
-  if (!f.q) return PE.cur.pms;
-  return PE.cur.pms.filter((r) => peHitKeys(r, PE.cols, f).length);
 }
 function peFolderCols(fo) {      // column keys of another folder (name, desc, every field)
   const ks = new Set(["__name", "__desc"]);
@@ -1232,50 +1267,11 @@ function pePos(r) {
   return r.geom.toLowerCase();
 }
 
-function peRenderTable() {
-  const rows = peRows(), box = $("pegrid");
-  const t = document.createElement("table"), th = document.createElement("thead"), hr = document.createElement("tr");
-  const h0 = document.createElement("th"); const all = document.createElement("input"); all.type = "checkbox"; all.title = "Centang semua yang tampil";
-  all.checked = rows.length > 0 && rows.every((r) => PE.sel.has(r));
-  all.onchange = () => { rows.forEach((r) => all.checked ? PE.sel.add(r) : PE.sel.delete(r)); peRenderTable(); peRenderMap(); };
-  h0.append(all); hr.append(h0);
-  const hp = document.createElement("th"); hp.textContent = "Posisi"; hr.append(hp);
-  for (const c of PE.cols) { const h = document.createElement("th"); h.textContent = c.label; if (c.k[0] !== "_" && c.label !== c.k) { const s = document.createElement("small"); s.textContent = c.k; h.append(s); } hr.append(h); }
-  th.append(hr); t.append(th);
-  const tb = document.createElement("tbody");
-  const ff = peFind();
-  rows.forEach((r, i) => {
-    const hits = new Set(peHitKeys(r, PE.cols, ff));
-    const tr = document.createElement("tr"); tr.dataset.i = i; r.tr = tr;
-    if (PE.sel.has(r)) tr.classList.add("sel");
-    if (PE.hot === r) tr.classList.add("hot");
-    const c0 = document.createElement("td"); c0.className = "ck"; const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = PE.sel.has(r);
-    cb.onclick = (ev) => {
-      if (ev.shiftKey && PE.lastCk != null) { const [a, b] = [Math.min(PE.lastCk, i), Math.max(PE.lastCk, i)]; for (let k = a; k <= b; k++) cb.checked ? PE.sel.add(rows[k]) : PE.sel.delete(rows[k]); peRenderTable(); }
-      else { cb.checked ? PE.sel.add(r) : PE.sel.delete(r); tr.classList.toggle("sel", cb.checked); }
-      PE.lastCk = i; peCount(); peRenderMap();
-    };
-    c0.append(cb); tr.append(c0);
-    const cp = document.createElement("td"); cp.className = "ro"; cp.textContent = pePos(r); tr.append(cp);
-    for (const c of PE.cols) {
-      const td = document.createElement("td"); const v = peGet(r, c.k);
-      td.contentEditable = "true"; td.spellcheck = false; td.dataset.k = c.k; td.textContent = v ?? "";
-      if (c.k in r.orig && r.orig[c.k] !== (v ?? "")) td.classList.add("chg");
-      if (hits.has(c.k)) td.classList.add("hit");
-      tr.append(td);
-    }
-    tb.append(tr);
-  });
-  if (!rows.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = PE.cols.length + 2; td.className = "empty"; td.textContent = "Tidak ada baris."; tr.append(td); tb.append(tr); }
-  t.append(tb); box.innerHTML = ""; box.append(t);
-  PE.visible = rows; peCount();
-}
-function peCount() { $("pecount").textContent = `${PE.visible.length} baris tampil · ${[...PE.sel].filter((r) => PE.cur.pms.includes(r)).length} dicentang.`; }
-
 function peWrite(r, k, val, td) {
   const before = peGet(r, k) ?? "";
   if (before === val) return;
   if (!(k in r.orig)) r.orig[k] = before;
+  if (PE.batch) PE.batch.push({ r, k, before, val });
   peSet(r, k, val);
   const changed = r.orig[k] !== val;
   if (td) td.classList.toggle("chg", changed);
@@ -1283,41 +1279,6 @@ function peWrite(r, k, val, td) {
   PE.edits = PE.all.reduce((n, x) => n + Object.keys(x.orig).filter((kk) => x.orig[kk] !== (peGet(x, kk) ?? "")).length, 0);
   clearTimeout(PE.st); PE.st = setTimeout(() => { peSummary(); if (k === "__name") peRenderMap(); }, 200);
 }
-
-// cell editing: input, Enter = next row, paste = fill a block (TSV from Excel)
-$("pegrid").addEventListener("input", (ev) => {
-  const td = ev.target.closest("td[data-k]"); if (!td) return;
-  const r = PE.visible[+td.parentElement.dataset.i];
-  peWrite(r, td.dataset.k, td.textContent.replace(/\n/g, " "), td);
-});
-$("pegrid").addEventListener("keydown", (ev) => {
-  const td = ev.target.closest("td[data-k]"); if (!td) return;
-  if (ev.key === "Enter" || ev.key === "ArrowDown" || ev.key === "ArrowUp") {
-    ev.preventDefault();
-    const tr = ev.key === "ArrowUp" || (ev.key === "Enter" && ev.shiftKey) ? td.parentElement.previousElementSibling : td.parentElement.nextElementSibling;
-    const nx = tr && tr.children[td.cellIndex];
-    if (nx) { nx.focus(); const s = getSelection(); s.selectAllChildren(nx); }
-  } else if (ev.key === "Escape") td.blur();
-});
-$("pegrid").addEventListener("focusin", (ev) => {
-  const td = ev.target.closest("td[data-k]"); if (!td) return;
-  const r = PE.visible[+td.parentElement.dataset.i];
-  if (PE.hot !== r) { PE.hot?.tr?.classList.remove("hot"); PE.hot = r; td.parentElement.classList.add("hot"); PE.pop = r; peRenderPop(); peRenderMap(); }
-});
-$("pegrid").addEventListener("paste", (ev) => {
-  const td = ev.target.closest("td[data-k]"); if (!td) return;
-  ev.preventDefault();
-  let text = (ev.clipboardData || window.clipboardData).getData("text/plain").replace(/\r/g, "");
-  if (text.endsWith("\n")) text = text.slice(0, -1);
-  const grid = text.split("\n").map((l) => l.split("\t"));
-  const i0 = +td.parentElement.dataset.i, c0 = PE.cols.findIndex((c) => c.k === td.dataset.k);
-  if (grid.length === 1 && grid[0].length === 1) { document.execCommand("insertText", false, grid[0][0]); return; }
-  grid.forEach((line, di) => line.forEach((v, dj) => {
-    const r = PE.visible[i0 + di], c = PE.cols[c0 + dj]; if (!r || !c) return;
-    peWrite(r, c.k, v.trim());
-  }));
-  peRenderTable();
-});
 
 function peRenderTools() {
   const fc = $("pefcol"), keep = fc.value; fc.innerHTML = '<option value="*">Semua kolom</option>';
@@ -1332,10 +1293,10 @@ function peRenderTools() {
 
 $("pebgo").onclick = () => {
   const k = $("pebfield").value, v = $("pebval").value; if (!k || !PE.cur) return;
-  for (const r of peTargets()) {
+  pgTx(() => { for (const r of peTargets()) {
     const c = r.coords[0] && r.coords[0][0];
     peWrite(r, k, v.replace(/\{nama\}/gi, peGet(r, "__name") || "").replace(/\{lat\}/gi, c ? c[1].toFixed(6) : "").replace(/\{lon\}/gi, c ? c[0].toFixed(6) : ""));
-  }
+  } });
   peRenderTable();
 };
 function pePoleAt(c, maxM = 6) {
@@ -1384,7 +1345,7 @@ $("pecoord").onclick = () => {
   if (!PE.cur) return;
   const lat = PE.cols.find((c) => /lat/i.test(c.k)), lon = PE.cols.find((c) => /lon|long|lng/i.test(c.k));
   if (!lat || !lon) { $("pecount").textContent = "Tidak ada kolom Lat/Long di folder ini. Pasang template dulu."; return; }
-  for (const r of peTargets()) { if (r.geom !== "Point" || !r.coords[0]) continue; const [x, y] = r.coords[0][0]; peWrite(r, lat.k, y.toFixed(6)); peWrite(r, lon.k, x.toFixed(6)); }
+  pgTx(() => { for (const r of peTargets()) { if (r.geom !== "Point" || !r.coords[0]) continue; const [x, y] = r.coords[0][0]; peWrite(r, lat.k, y.toFixed(6)); peWrite(r, lon.k, x.toFixed(6)); } });
   peRenderTable();
 };
 const peDoFind = () => { peRenderTable(); peRenderMap(!!$("pefilter").value.trim() && PE.visible.length > 0); peRenderFindRes(); };
@@ -1393,10 +1354,10 @@ $("pefrepgo").onclick = () => {
   const f = peFind(); if (!f.q || !PE.cur) return;
   const rep = $("pefrep").value, rx = new RegExp($("pefilter").value.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
   let n = 0;
-  for (const r of peTargets()) for (const k of peHitKeys(r, PE.cols, f)) {
+  pgTx(() => { for (const r of peTargets()) for (const k of peHitKeys(r, PE.cols, f)) {
     const v = peGet(r, k) || "", nv = f.exact ? rep : v.replace(rx, rep);
     if (nv !== v) { peWrite(r, k, nv); n++; }
-  }
+  } });
   $("pefilter").value = rep; peDoFind();
   $("pefindres").prepend(Object.assign(document.createElement("span"), { className: "pill ok", textContent: n + " sel diganti" }));
 };
@@ -1664,11 +1625,308 @@ $("pecoldelgo").onclick = () => {
       (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, "") === id && peKids(sd, "SimpleData").some((x) => x.getAttribute("name") === k)));
     if (!used) peKids(sc.el, "SimpleField").filter((f) => f.getAttribute("name") === k).forEach((f) => f.remove());
   }
-  PE.dirty = true;
+  PE.dirty = true; PE.undo = []; PE.redo = [];
   if ($("pebfield").value === k) $("pebfield").value = "__name";
   peBuildCols(); peRenderTools(); peRenderTable(); peRenderPop(); peRenderMap(); peSummary();
   $("pecount").textContent = `Kolom "${label}" dihapus dari ${n} titik.`;
 };
+
+// ---- spreadsheet grid (Excel-like): select with mouse/keys, type to edit, copy/paste blocks, fill handle, undo ----
+// Selection: anchor (ar, ac) and focus (fr, fc) in [row index into PE.visible, column index into PE.cols].
+const G = { ar: 0, ac: 0, fr: 0, fc: 0, drag: null, edit: null, painted: [], cells: [] };
+PE.undo = []; PE.redo = []; PE.batch = null;
+
+function pgTx(fn) {                       // group writes into one undo step
+  if (PE.batch) return fn();
+  PE.batch = [];
+  try { fn(); } finally {
+    const b = PE.batch; PE.batch = null;
+    if (b.length) { PE.undo.push(b); if (PE.undo.length > 200) PE.undo.shift(); PE.redo = []; }
+  }
+}
+function pgUndo(redo) {
+  const from = redo ? PE.redo : PE.undo, to = redo ? PE.undo : PE.redo;
+  const b = from.pop(); if (!b) return;
+  const save = PE.batch; PE.batch = null;
+  for (const w of (redo ? b : [...b].reverse())) peWrite(w.r, w.k, redo ? w.val : w.before);
+  PE.batch = save; to.push(b);
+  pgRefresh(); peFxShow();
+}
+const pgRange = () => ({ r0: Math.min(G.ar, G.fr), r1: Math.max(G.ar, G.fr), c0: Math.min(G.ac, G.fc), c1: Math.max(G.ac, G.fc) });
+const pgCell = (i, c) => (G.cells[i] || [])[c] || null;
+const pgColName = (c) => { let s = ""; c++; while (c) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = (c - m - 1) / 26; } return s; };
+
+function peRows() {
+  const f = peFind();
+  let rows = f.q ? PE.cur.pms.filter((r) => peHitKeys(r, PE.cols, f).length) : PE.cur.pms.slice();
+  if (PE.sort && PE.cols.some((c) => c.k === PE.sort.k)) {
+    const k = PE.sort.k, d = PE.sort.dir, cmp = new Intl.Collator("id", { numeric: true, sensitivity: "base" }).compare;
+    rows.sort((a, b) => d * cmp(peGet(a, k) || "", peGet(b, k) || ""));
+  }
+  return rows;
+}
+
+function peRenderTable() {
+  pgEndEdit(true);
+  const rows = peRows(), box = $("pegrid");
+  const t = document.createElement("table"), th = document.createElement("thead"), hr = document.createElement("tr");
+  const h0 = document.createElement("th"); h0.className = "ck"; const all = document.createElement("input"); all.type = "checkbox"; all.title = "Centang semua yang tampil";
+  all.checked = rows.length > 0 && rows.every((r) => PE.sel.has(r));
+  all.onchange = () => { rows.forEach((r) => all.checked ? PE.sel.add(r) : PE.sel.delete(r)); peRenderTable(); peRenderMap(); };
+  h0.append(all); hr.append(h0);
+  const hn = document.createElement("th"); hn.className = "rn corner"; hn.title = "Pilih semua sel (Ctrl+A)"; hn.dataset.all = "1"; hr.append(hn);
+  const hp = document.createElement("th"); hp.className = "pos"; hp.textContent = "Posisi"; hr.append(hp);
+  PE.cols.forEach((c, j) => {
+    const h = document.createElement("th"); h.dataset.c = j; h.className = "col";
+    const top = document.createElement("div"); top.className = "ch";
+    const letter = document.createElement("span"); letter.className = "cl"; letter.textContent = pgColName(j);
+    const lab = document.createElement("span"); lab.className = "lab"; lab.textContent = c.label;
+    const sb = document.createElement("button"); sb.type = "button"; sb.className = "sort"; sb.dataset.sort = c.k;
+    sb.textContent = PE.sort && PE.sort.k === c.k ? (PE.sort.dir > 0 ? "▲" : "▼") : "↕"; sb.title = "Urutkan";
+    top.append(letter, lab, sb); h.append(top);
+    if (c.k[0] !== "_" && c.label !== c.k) { const s = document.createElement("small"); s.textContent = c.k; h.append(s); }
+    hr.append(h);
+  });
+  th.append(hr); t.append(th);
+  const tb = document.createElement("tbody"), ff = peFind();
+  G.cells = [];
+  rows.forEach((r, i) => {
+    const hits = new Set(peHitKeys(r, PE.cols, ff));
+    const tr = document.createElement("tr"); tr.dataset.i = i; r.tr = tr;
+    if (PE.sel.has(r)) tr.classList.add("sel");
+    if (PE.hot === r) tr.classList.add("hot");
+    const c0 = document.createElement("td"); c0.className = "ck"; const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = PE.sel.has(r);
+    cb.onclick = (ev) => {
+      if (ev.shiftKey && PE.lastCk != null) { const [a, b] = [Math.min(PE.lastCk, i), Math.max(PE.lastCk, i)]; for (let k = a; k <= b; k++) cb.checked ? PE.sel.add(rows[k]) : PE.sel.delete(rows[k]); peRenderTable(); }
+      else { cb.checked ? PE.sel.add(r) : PE.sel.delete(r); tr.classList.toggle("sel", cb.checked); }
+      PE.lastCk = i; peCount(); peRenderMap();
+    };
+    c0.append(cb); tr.append(c0);
+    const rn = document.createElement("td"); rn.className = "rn"; rn.dataset.row = i; rn.textContent = i + 1; tr.append(rn);
+    const cp = document.createElement("td"); cp.className = "ro"; cp.textContent = pePos(r); tr.append(cp);
+    const line = [];
+    PE.cols.forEach((c, j) => {
+      const td = document.createElement("td"); const v = peGet(r, c.k);
+      td.dataset.k = c.k; td.dataset.c = j; td.textContent = v ?? "";
+      if (c.k in r.orig && r.orig[c.k] !== (v ?? "")) td.classList.add("chg");
+      if (hits.has(c.k)) td.classList.add("hit");
+      tr.append(td); line.push(td);
+    });
+    G.cells.push(line); tb.append(tr);
+  });
+  if (!rows.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = PE.cols.length + 3; td.className = "empty"; td.textContent = "Tidak ada baris."; tr.append(td); tb.append(tr); }
+  t.append(tb); box.innerHTML = ""; box.append(t);
+  PE.visible = rows; peCount();
+  const nr = rows.length, nc = PE.cols.length;
+  G.ar = Math.min(G.ar, Math.max(0, nr - 1)); G.fr = Math.min(G.fr, Math.max(0, nr - 1));
+  G.ac = Math.min(G.ac, Math.max(0, nc - 1)); G.fc = Math.min(G.fc, Math.max(0, nc - 1));
+  G.painted = []; pgPaint(); peFxShow();
+}
+function peCount() { $("pecount").textContent = `${PE.visible.length} baris tampil · ${[...PE.sel].filter((r) => PE.cur.pms.includes(r)).length} dicentang.`; }
+
+function pgPaint() {
+  for (const td of G.painted) td.classList.remove("in", "act", "top", "bot", "lft", "rgt");
+  G.painted = [];
+  const old = $("pegrid").querySelector(".pe-fillh"); if (old) old.remove();
+  if (!PE.visible || !PE.visible.length || !PE.cols.length) return;
+  const { r0, r1, c0, c1 } = pgRange();
+  for (let i = r0; i <= r1; i++) for (let c = c0; c <= c1; c++) {
+    const td = pgCell(i, c); if (!td) continue;
+    td.classList.add("in");
+    if (i === r0) td.classList.add("top"); if (i === r1) td.classList.add("bot");
+    if (c === c0) td.classList.add("lft"); if (c === c1) td.classList.add("rgt");
+    G.painted.push(td);
+  }
+  const a = pgCell(G.fr, G.fc); if (a) { a.classList.add("act"); G.painted.push(a); }
+  const br = pgCell(r1, c1);
+  if (br && !G.edit) { const h = document.createElement("i"); h.className = "pe-fillh"; h.title = "Tarik ke bawah untuk mengisi (seperti Excel)"; br.append(h); }
+  if (G.drag && G.drag.fill) for (let i = r1 + 1; i <= G.drag.to; i++) for (let c = c0; c <= c1; c++) { const td = pgCell(i, c); if (td) { td.classList.add("in"); G.painted.push(td); } }
+}
+function pgRefresh() {                     // re-read every visible cell value (after undo, paste …)
+  PE.visible.forEach((r, i) => PE.cols.forEach((c, j) => {
+    const td = pgCell(i, j); if (!td || td === G.edit?.td) return;
+    const v = peGet(r, c.k) ?? "";
+    if (td.firstChild?.nodeType !== 3 || td.firstChild.data !== v) { const h = td.querySelector(".pe-fillh"); td.textContent = v; if (h) td.append(h); }
+    td.classList.toggle("chg", c.k in r.orig && r.orig[c.k] !== v);
+  }));
+  peSummary();
+}
+function pgSet(r, c, extend) {
+  const nr = PE.visible.length, nc = PE.cols.length; if (!nr || !nc) return;
+  r = Math.max(0, Math.min(nr - 1, r)); c = Math.max(0, Math.min(nc - 1, c));
+  const rowChanged = r !== G.fr;
+  G.fr = r; G.fc = c; if (!extend) { G.ar = r; G.ac = c; }
+  pgPaint(); peFxShow();
+  const td = pgCell(r, c); if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" });
+  if (rowChanged || !extend) pgHot();
+}
+function pgHot() {
+  const r = PE.visible[G.fr]; if (!r || PE.hot === r) return;
+  PE.hot?.tr?.classList.remove("hot"); PE.hot = r; r.tr?.classList.add("hot"); PE.pop = r; peRenderPop(); peRenderMap();
+}
+
+// formula bar: full value of the active cell, editable
+function peFxShow() {
+  const fx = $("pefx"), ref = $("pefxref"); if (!fx) return;
+  const r = PE.visible?.[G.fr], c = PE.cols[G.fc];
+  if (!r || !c) { fx.value = ""; ref.textContent = ""; fx.disabled = true; return; }
+  const { r0, r1, c0, c1 } = pgRange(), n = (r1 - r0 + 1) * (c1 - c0 + 1);
+  ref.textContent = pgColName(G.fc) + (G.fr + 1) + " · " + c.label + (n > 1 ? `  (${r1 - r0 + 1}×${c1 - c0 + 1})` : "");
+  fx.disabled = false; if (document.activeElement !== fx) fx.value = peGet(r, c.k) ?? "";
+}
+
+// ---- editing a cell (input inside the cell) ----
+function pgStartEdit(text, keepCaret) {
+  const r = PE.visible[G.fr], c = PE.cols[G.fc], td = pgCell(G.fr, G.fc); if (!r || !c || !td) return;
+  pgEndEdit(true);
+  const inp = document.createElement("input"); inp.type = "text"; inp.className = "pe-cellin"; inp.spellcheck = false;
+  inp.value = text != null ? text : (peGet(r, c.k) ?? "");
+  td.textContent = ""; td.append(inp); td.classList.add("editing");
+  G.edit = { td, r, k: c.k, inp, quick: text != null && !keepCaret };
+  inp.focus(); const L = inp.value.length; inp.setSelectionRange(L, L);
+  pgPaint();
+}
+function pgEndEdit(commit) {
+  const e = G.edit; if (!e) return; G.edit = null;
+  const v = e.inp.value;
+  e.td.classList.remove("editing"); e.td.textContent = peGet(e.r, e.k) ?? "";
+  if (commit) pgTx(() => peWrite(e.r, e.k, v.replace(/[\r\n\t]+/g, " ")));
+  peFxShow(); pgPaint();
+}
+const pgFocusGrid = () => $("pegrid").focus({ preventScroll: true });
+
+// ---- mouse ----
+const grid = $("pegrid");
+grid.tabIndex = 0;
+grid.addEventListener("mousedown", (ev) => {
+  if (ev.target.closest("input[type=checkbox], button.sort, .pe-cellin")) return;
+  const fh = ev.target.closest(".pe-fillh");
+  if (fh) { ev.preventDefault(); const { r1 } = pgRange(); G.drag = { fill: true, to: r1 }; return; }
+  const td = ev.target.closest("td[data-c]"), rn = ev.target.closest("td.rn"), th = ev.target.closest("th.col"), corner = ev.target.closest("th.corner");
+  if (!td && !rn && !th && !corner) return;
+  ev.preventDefault(); pgEndEdit(true); pgFocusGrid();
+  const last = PE.cols.length - 1, lastR = PE.visible.length - 1;
+  if (corner) { G.ar = 0; G.ac = 0; G.fr = lastR; G.fc = last; pgPaint(); peFxShow(); return; }
+  if (rn) { const i = +rn.dataset.row; if (ev.shiftKey) { G.fr = i; G.fc = last; G.ac = 0; } else { G.ar = G.fr = i; G.ac = 0; G.fc = last; } G.drag = { rows: true }; pgPaint(); peFxShow(); pgHot(); return; }
+  if (th) { const j = +th.dataset.c; if (ev.shiftKey) { G.fc = j; G.ar = 0; G.fr = lastR; } else { G.ac = G.fc = j; G.ar = 0; G.fr = lastR; } G.drag = { cols: true }; pgPaint(); peFxShow(); return; }
+  const i = +td.parentElement.dataset.i, j = +td.dataset.c;
+  pgSet(i, j, ev.shiftKey); G.drag = { cells: true };
+});
+grid.addEventListener("mouseover", (ev) => {
+  if (!G.drag) return;
+  const td = ev.target.closest("td[data-c], td.rn, th.col"); if (!td) return;
+  const tr = td.closest("tr");
+  if (G.drag.fill) { const i = tr.dataset.i != null ? +tr.dataset.i : null; if (i != null) { G.drag.to = Math.max(pgRange().r1, i); pgPaint(); } return; }
+  if (G.drag.rows && tr.dataset.i != null) { G.fr = +tr.dataset.i; pgPaint(); peFxShow(); return; }
+  if (G.drag.cols && td.dataset.c != null) { G.fc = +td.dataset.c; pgPaint(); peFxShow(); return; }
+  if (G.drag.cells && td.dataset.c != null && tr.dataset.i != null) { G.fr = +tr.dataset.i; G.fc = +td.dataset.c; pgPaint(); peFxShow(); }
+});
+addEventListener("mouseup", (ev) => {
+  const d = G.drag; if (d) d.ctrl = ev.ctrlKey || ev.metaKey; G.drag = null; if (!d) return;
+  if (d.fill) { const { r1 } = pgRange(); if (d.to > r1) pgFill(r1 + 1, d.to, !d.ctrl); else pgPaint(); }
+});
+grid.addEventListener("dblclick", (ev) => { const td = ev.target.closest("td[data-c]"); if (td && !ev.target.closest(".pe-fillh")) pgStartEdit(null, true); });
+grid.addEventListener("click", (ev) => {
+  const sb = ev.target.closest("button.sort"); if (!sb) return;
+  const k = sb.dataset.sort;
+  PE.sort = !PE.sort || PE.sort.k !== k ? { k, dir: 1 } : PE.sort.dir > 0 ? { k, dir: -1 } : null;
+  peRenderTable(); peRenderMap();
+});
+
+// fill handle: a short ID (1A, 12, S01) counts up 1A → 2A → 3A, anything else is copied; hold Ctrl while releasing to copy only
+function pgFill(from, to, series) {
+  const { r0, r1, c0, c1 } = pgRange(), n = r1 - r0 + 1;
+  pgTx(() => {
+    for (let c = c0; c <= c1; c++) {
+      const k = PE.cols[c].k, src = [];
+      for (let i = r0; i <= r1; i++) src.push(peGet(PE.visible[i], k) ?? "");
+      const m = n === 1 && (series ?? true) && src[0].match(/^(\D{0,3})(\d+)([A-Za-z]{0,2})$/);   // short IDs only: 1A, 12, S01 …
+      for (let i = from; i <= to; i++) {
+        let v;
+        if (m) { const num = String(+m[2] + (i - r1)); v = m[1] + (m[2].length > num.length ? num.padStart(m[2].length, "0") : num) + m[3]; }
+        else v = src[(i - r0) % n];
+        peWrite(PE.visible[i], k, v);
+      }
+    }
+  });
+  G.fr = to; G.ar = r0; G.ac = c0; G.fc = c1; pgRefresh(); pgPaint(); peFxShow();
+}
+
+// ---- keyboard ----
+grid.addEventListener("keydown", (ev) => {
+  if (G.edit) return;                                    // the cell input handles its own keys
+  if (ev.target !== grid) return;
+  const ctrl = ev.ctrlKey || ev.metaKey, k = ev.key, nr = PE.visible.length, nc = PE.cols.length;
+  if (!nr || !nc) return;
+  const mv = (dr, dc) => {
+    let r = G.fr, c = G.fc;
+    if (ctrl) { if (dr) r = dr > 0 ? nr - 1 : 0; if (dc) c = dc > 0 ? nc - 1 : 0; } else { r += dr; c += dc; }
+    pgSet(r, c, ev.shiftKey);
+  };
+  if (k === "ArrowDown") { ev.preventDefault(); mv(1, 0); }
+  else if (k === "ArrowUp") { ev.preventDefault(); mv(-1, 0); }
+  else if (k === "ArrowRight") { ev.preventDefault(); mv(0, 1); }
+  else if (k === "ArrowLeft") { ev.preventDefault(); mv(0, -1); }
+  else if (k === "Tab") { ev.preventDefault(); pgSet(G.fr, G.fc + (ev.shiftKey ? -1 : 1)); }
+  else if (k === "Enter") { ev.preventDefault(); pgSet(G.fr + (ev.shiftKey ? -1 : 1), G.fc); }
+  else if (k === "F2") { ev.preventDefault(); pgStartEdit(null, true); }
+  else if (k === "Delete" || k === "Backspace") { ev.preventDefault(); pgClear(); }
+  else if (k === "Escape") { G.ar = G.fr; G.ac = G.fc; pgPaint(); peFxShow(); }
+  else if (ctrl && (k === "z" || k === "Z")) { ev.preventDefault(); pgUndo(ev.shiftKey); }
+  else if (ctrl && (k === "y" || k === "Y")) { ev.preventDefault(); pgUndo(true); }
+  else if (ctrl && (k === "a" || k === "A")) { ev.preventDefault(); G.ar = 0; G.ac = 0; G.fr = nr - 1; G.fc = nc - 1; pgPaint(); peFxShow(); }
+  else if (ctrl && (k === "d" || k === "D")) { ev.preventDefault(); const { r0, r1 } = pgRange(); if (r1 > r0) { const keep = { ...G }; G.fr = G.ar = r0; pgFill(r0 + 1, r1, false); G.ar = r0; G.fr = r1; G.ac = keep.ac; G.fc = keep.fc; pgPaint(); } }
+  else if (!ctrl && !ev.altKey && k.length === 1) { ev.preventDefault(); pgStartEdit(k); }
+});
+grid.addEventListener("keydown", (ev) => {
+  const e = G.edit; if (!e || ev.target !== e.inp) return;
+  const k = ev.key;
+  if (k === "Enter") { ev.preventDefault(); pgEndEdit(true); pgFocusGrid(); pgSet(G.fr + (ev.shiftKey ? -1 : 1), G.fc); }
+  else if (k === "Tab") { ev.preventDefault(); pgEndEdit(true); pgFocusGrid(); pgSet(G.fr, G.fc + (ev.shiftKey ? -1 : 1)); }
+  else if (k === "Escape") { ev.preventDefault(); pgEndEdit(false); pgFocusGrid(); }
+  else if (e.quick && /^Arrow/.test(k)) {                 // typed straight into the cell: arrows move on, like Excel
+    ev.preventDefault(); pgEndEdit(true); pgFocusGrid();
+    pgSet(G.fr + (k === "ArrowDown") - (k === "ArrowUp"), G.fc + (k === "ArrowRight") - (k === "ArrowLeft"));
+  }
+}, true);
+grid.addEventListener("focusout", (ev) => { if (G.edit && ev.target === G.edit.inp) setTimeout(() => { if (G.edit && document.activeElement !== G.edit.inp) pgEndEdit(true); }, 0); });
+
+function pgClear() {
+  const { r0, r1, c0, c1 } = pgRange();
+  pgTx(() => { for (let i = r0; i <= r1; i++) for (let c = c0; c <= c1; c++) peWrite(PE.visible[i], PE.cols[c].k, ""); });
+  pgRefresh(); peFxShow();
+}
+function pgTSV() {
+  const { r0, r1, c0, c1 } = pgRange(), out = [];
+  for (let i = r0; i <= r1; i++) { const l = []; for (let c = c0; c <= c1; c++) l.push((peGet(PE.visible[i], PE.cols[c].k) ?? "").replace(/[\t\n]/g, " ")); out.push(l.join("\t")); }
+  return out.join("\n");
+}
+document.addEventListener("copy", (ev) => { if (document.activeElement !== grid || G.edit) return; ev.preventDefault(); ev.clipboardData.setData("text/plain", pgTSV()); });
+document.addEventListener("cut", (ev) => { if (document.activeElement !== grid || G.edit) return; ev.preventDefault(); ev.clipboardData.setData("text/plain", pgTSV()); pgClear(); });
+document.addEventListener("paste", (ev) => {
+  if (document.activeElement !== grid || G.edit) return;
+  ev.preventDefault();
+  let text = (ev.clipboardData || window.clipboardData).getData("text/plain").replace(/\r/g, "");
+  if (text.endsWith("\n")) text = text.slice(0, -1);
+  const blk = text.split("\n").map((l) => l.split("\t"));
+  const { r0, r1, c0, c1 } = pgRange();
+  const single = blk.length === 1 && blk[0].length === 1;
+  pgTx(() => {
+    if (single) { for (let i = r0; i <= r1; i++) for (let c = c0; c <= c1; c++) peWrite(PE.visible[i], PE.cols[c].k, blk[0][0].trim()); }
+    else blk.forEach((line, di) => line.forEach((v, dj) => { const r = PE.visible[r0 + di], c = PE.cols[c0 + dj]; if (r && c) peWrite(r, c.k, v.trim()); }));
+  });
+  if (!single) { G.ar = r0; G.ac = c0; G.fr = Math.min(PE.visible.length - 1, r0 + blk.length - 1); G.fc = Math.min(PE.cols.length - 1, c0 + Math.max(...blk.map((l) => l.length)) - 1); }
+  pgRefresh(); pgPaint(); peFxShow();
+});
+
+// formula bar edits
+$("pefx").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter") { ev.preventDefault(); const r = PE.visible[G.fr], c = PE.cols[G.fc]; if (r && c) pgTx(() => peWrite(r, c.k, $("pefx").value)); pgFocusGrid(); pgSet(G.fr + 1, G.fc); }
+  else if (ev.key === "Escape") { ev.preventDefault(); peFxShow(); pgFocusGrid(); }
+});
+$("pefx").addEventListener("change", () => { const r = PE.visible[G.fr], c = PE.cols[G.fc]; if (r && c && $("pefx").value !== (peGet(r, c.k) ?? "")) pgTx(() => peWrite(r, c.k, $("pefx").value)); });
+$("peundo").onclick = () => pgUndo(false);
+$("peredo").onclick = () => pgUndo(true);
 
 </script>
 </body>
