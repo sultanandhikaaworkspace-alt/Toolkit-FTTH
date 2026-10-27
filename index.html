@@ -478,7 +478,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
-      <p class="hint">Seperti Excel: klik / tarik untuk memilih sel, langsung ketik untuk mengisi, F2 atau klik dua kali untuk edit, Delete untuk mengosongkan, Ctrl+C / Ctrl+V untuk salin-tempel (juga dari Excel), tarik kotak kecil di pojok sel untuk mengisi ke bawah (1A → 2A → 3A), Ctrl+D isi ke bawah, Ctrl+Z undo. Klik ↕ di judul kolom untuk mengurutkan. Kolom Pole Type punya daftar pilihan (klik ▾ atau Alt+↓). Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
+      <p class="hint">Seperti Excel: klik / tarik untuk memilih sel, langsung ketik untuk mengisi, F2 atau klik dua kali untuk edit, Delete untuk mengosongkan, Ctrl+C / Ctrl+V untuk salin-tempel (juga dari Excel), tarik kotak kecil di pojok sel untuk mengisi ke bawah (1A → 2A → 3A), Ctrl+D isi ke bawah, Ctrl+Z undo. Klik ↕ di judul kolom untuk mengurutkan. Kolom Pole Type dan Pole Provider punya daftar pilihan (klik ▾ atau Alt+↓). Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
       <div class="pe-body">
         <div class="pe-sheet">
           <div class="pe-fx">
@@ -1022,7 +1022,7 @@ const GEOMS = ["Point", "LineString", "LinearRing", "Polygon", "MultiGeometry", 
 
 const PE_TPL = [
   { name: "POLE CONVERT", id: "S_POLE_CONVERT_SSSSSS", label: "POLE (ABD)",
-    f: [["Pole_ID__New_", "Pole ID (New)"], ["Coordinate__Lat__NEW", "Coordinate (Lat) NEW"], ["Coordinate__Long__NEW", "Coordinate (Long) NEW"], ["Pole_Provider__New_", "Pole Provider (New)"], ["Pole_Type", "Pole Type"], ["LINE", "LINE"]] },
+    f: [["Pole_ID__New_", "Pole ID (New)"], ["Coordinate__Lat__NEW", "Coordinate (Lat) NEW"], ["Coordinate__Long__NEW", "Coordinate (Long) NEW"], ["Pole_Provider__New_", "Pole Provider (New)"], ["Pole_Type", "Pole Type"]] },
   { name: "FAT convert", id: "S_FAT_convert_SSSSSS", label: "FAT (ABD)",
     f: [["Pole_ID__New_", "Pole ID (New)"], ["Coordinate__Lat__NEW", "Coordinate (Lat) NEW"], ["Coordinate__Long__NEW", "Coordinate (Long) NEW"], ["Pole_Provider__New_", "Pole Provider (New)"], ["Pole_Type", "Pole Type"], ["FAT_ID_NETWORK_ID", "FAT ID/NETWORK ID"]] },
   { name: "FDT convert", id: "S_FDT_convert_SSSSSS", label: "FDT (ABD)",
@@ -1948,7 +1948,10 @@ $("peundo").onclick = () => pgUndo(false);
 $("peredo").onclick = () => pgUndo(true);
 
 // ---- pick lists (like Excel data validation): Pole Type ----
-const PE_LISTS = [{ test: /pole.?type/i, opts: ["POLE 7/250", "POLE 7/200", "POLE 8/200", "-"] }];
+const PE_LISTS = [
+  { test: /pole.?type/i, opts: ["POLE 7/250", "POLE 7/200", "POLE 8/200", "-"] },
+  { test: /provider/i, opts: ["LN (EXISTING)", "ALITA (EXISTING)", "FMI (EXISTING)", "MYREP (EXISTING)", "MTI (EXISTING)", "XL (EXISTING)", "PLN (EXISTING)"] },
+];
 function pgListFor(k) { if (!k || k[0] === "_") return null; const l = PE_LISTS.find((x) => x.test.test(k)); return l ? l.opts : null; }
 function pgOpenList() {
   pgCloseList();
