@@ -439,7 +439,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
-      <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. Folder POLE, FAT, FDT dan CABLE DISTRIBUTION yang belum punya popup langsung dibuatkan popup format ABD. <span class="pe-count" id="pecount"></span></p>
+      <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
       <div class="pe-body">
         <div class="pe-grid" id="pegrid"></div>
         <div class="pe-map">
@@ -1345,10 +1345,10 @@ function pePoleAt(c, maxM = 6) {
       const d = peLen([c, q]); if (d < bd) { bd = d; best = p; } } }
   return best;
 }
-// folders named POLE / FAT / FDT / CABLE get the ABD popup automatically when their points have none
+// a POLE folder whose points have no popup gets the ABD pole popup automatically
 function peAutoTpl(f) {
   const nm = (f.name || "").toUpperCase();
-  const t = /POLE|TIANG/.test(nm) ? PE_TPL[0] : /\bFAT\b/.test(nm) ? PE_TPL[1] : /\bFDT\b/.test(nm) ? PE_TPL[2] : /CABLE|KABEL/.test(nm) && !/DROP/.test(nm) ? PE_TPL[3] : null;
+  const t = /POLE|TIANG/.test(nm) ? PE_TPL[0] : null;      // only POLE gets an automatic popup
   if (!t) return 0;
   const bare = f.pms.filter((r) => !peKid(r.el, "ExtendedData"));
   if (!bare.length) return 0;
