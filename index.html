@@ -160,6 +160,27 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pe-map .legend { font-size: 12px; color: var(--muted); padding: 6px 8px; display: flex; gap: 12px; flex-wrap: wrap; }
 .pe-map .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .pe-count { font-size: 12.5px; color: var(--muted); }
+.pe-pop { position: absolute; z-index: 3; width: 270px; max-width: calc(100% - 8px); background: #fff; color: #111; border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35); padding: 22px 14px 12px; font: 12px/1.35 Arial, Helvetica, sans-serif; }
+.pe-pop::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -10px; margin-left: -10px; border: 10px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.pe-pop.below::after { bottom: auto; top: -10px; border-top: 0; border-bottom: 10px solid #fff; }
+.pe-pop.off { opacity: .35; }
+.pe-pop .x { position: absolute; top: 2px; right: 6px; border: 0; background: none; font: 20px/1 Arial, sans-serif; color: #333; cursor: pointer; padding: 2px 4px; }
+.pe-pop .ttl { font-weight: 700; font-size: 13px; margin: 0 18px 6px 0; outline: none; border-radius: 2px; }
+.pe-pop table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pe-pop th { text-align: left; font-weight: 700; color: #111; font-size: 12px; padding: 3px 10px 3px 0; border: 0; vertical-align: top; white-space: normal; width: 42%; }
+.pe-pop td { padding: 3px 4px; border: 0; color: #111; word-break: break-word; vertical-align: top; }
+.pe-pop [contenteditable] { outline: none; cursor: text; border-radius: 2px; min-height: 1.35em; }
+.pe-pop [contenteditable]:hover { background: #f1f5f9; }
+.pe-pop [contenteditable]:focus { background: #fff; box-shadow: inset 0 0 0 1.5px #0b6e75; }
+.pe-pop td.chg { background: #fff3d6; }
+.pe-pop tr.geo td { color: #111; }
+.pe-pop td.none { color: #666; font-style: italic; }
+.pe-grid td.hit { box-shadow: inset 0 -2px 0 var(--accent); font-weight: 600; }
+.pe-find .pe-ck { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); padding-bottom: 7px; }
+.pe-find input[type=search] { font: 13px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 170px; }
+.pe-findres { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pe-findres:empty { display: none; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -406,8 +427,17 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         </div>
         <div class="grp">
           <b>Tabel</b>
-          <input type="text" id="pefilter" autocomplete="off" placeholder="cari…" style="width:140px">
           <button type="button" class="sec" id="pecopy">Salin ke Excel</button>
+        </div>
+        <div class="grp pe-find">
+          <b>Cari &amp; ganti</b>
+          <label class="f">Cari <input type="search" id="pefilter" autocomplete="off" placeholder="mis. 31B, LINE C"></label>
+          <label class="f">Di kolom <select id="pefcol"></select></label>
+          <label class="pe-ck"><input type="checkbox" id="pefexact"> Persis sama</label>
+          <label class="pe-ck"><input type="checkbox" id="pefall"> Semua folder</label>
+          <label class="f">Ganti dengan <input type="text" id="pefrep" autocomplete="off" placeholder="nilai baru"></label>
+          <button type="button" class="sec" id="pefrepgo">Ganti</button>
+          <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
       <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, template, dan Lat/Long berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. <span class="pe-count" id="pecount"></span></p>
@@ -1025,16 +1055,34 @@ function peExtData(pm) {
   }
   return ed;
 }
+function peFolderSchema() {
+  const f = PE.cur, sch = peSchemas();
+  if (f && f.schema && sch[f.schema]) return f.schema;
+  const nm = (f && f.name) || "POPUP", base = nm.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "POPUP";
+  let id = "S_" + base, n = 1; while (sch[id]) id = "S_" + base + "_" + (++n);
+  peEnsureSchema({ name: nm, id, f: [] });
+  if (f) f.schema = id;
+  return id;
+}
 function peSchemaData(pm, schemaId) {
   const ed = peExtData(pm);
   let sd = peKids(ed, "SchemaData")[0];
-  if (!sd && schemaId) { sd = peNew("SchemaData"); sd.setAttribute("schemaUrl", "#" + schemaId); ed.prepend(sd); }
-  return sd || null;
+  if (!sd) {
+    schemaId = schemaId || peFolderSchema();
+    sd = peNew("SchemaData"); sd.setAttribute("schemaUrl", "#" + schemaId); ed.prepend(sd);
+    const sch = peSchemas()[schemaId];
+    for (const d of peKids(ed, "Data")) {         // old <Data> fields -> SimpleData (Google Earth draws <Data> as a boxed table)
+      const n = d.getAttribute("name");
+      if (sch && !sch.fields.some((x) => x.name === n)) peAddSimpleField(sch.el, n, peKid(d, "displayName")?.textContent || n);
+      const x = peNew("SimpleData"); x.setAttribute("name", n); x.textContent = peKid(d, "value")?.textContent || ""; sd.append(x); d.remove();
+    }
+  }
+  return sd;
 }
 // create field f on placemark (schema-aware, in schema order)
 function peCreate(pm, f, schemaId) {
   const sd = peSchemaData(pm, schemaId);
-  if (!sd) { const d = peNew("Data"); d.setAttribute("name", f); const v = peNew("value"); d.append(v); peExtData(pm).append(d); return v; }
+  const ex = peFieldEl(pm, f); if (ex) return ex;     // may have come over from an old <Data>
   const sid = (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, ""), sch = peSchemas()[sid];
   if (sch && !sch.fields.some((x) => x.name === f)) { peAddSimpleField(sch.el, f, f); }
   const order = sch ? peSchemas()[sid].fields.map((x) => x.name) : [];
@@ -1114,13 +1162,13 @@ function peRenderFolders() {
 }
 
 function peSelectFolder(f) {
-  PE.cur = f; PE.sel = new Set(); PE.hot = null; $("pefilter").value = "";
+  PE.cur = f; PE.sel = new Set(); PE.hot = null; PE.pop = null; peRenderPop(); if (!PE.keepFind) $("pefilter").value = ""; PE.keepFind = false;
   // folder schema = most used SchemaData schemaUrl among its placemarks
   const cnt = {};
   for (const r of f.pms) for (const sd of peKids(peKid(r.el, "ExtendedData"), "SchemaData")) { const u = (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, ""); cnt[u] = (cnt[u] || 0) + 1; }
   f.schema = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || f.schema || null;
   $("pework").hidden = false;
-  peRenderFolders(); peBuildCols(); peRenderTable(); peRenderTools(); peRenderMap(true);
+  peRenderFolders(); peBuildCols(); peRenderTools(); peRenderTable(); peRenderMap(true); peRenderFindRes();
 }
 
 function peBuildCols() {
@@ -1138,10 +1186,41 @@ function peBuildCols() {
   PE.cols = [{ k: "__name", label: "Nama" }, ...(hasDesc ? [{ k: "__desc", label: "Deskripsi" }] : []), ...[...seen].map(([k, label]) => ({ k, label }))];
 }
 
+// ---- find: text, one column or all, exact or contains ----
+function peFind() { return { q: $("pefilter").value.trim().toLowerCase(), col: $("pefcol").value || "*", exact: $("pefexact").checked }; }
+function peHitKeys(r, cols, f) {
+  if (!f.q) return [];
+  const use = f.col === "*" ? cols : cols.filter((c) => c.k === f.col);
+  return use.filter((c) => { const v = (peGet(r, c.k) || "").trim().toLowerCase(); return f.exact ? v === f.q : v.includes(f.q); }).map((c) => c.k);
+}
 function peRows() {
-  const q = $("pefilter").value.trim().toLowerCase();
-  if (!q) return PE.cur.pms;
-  return PE.cur.pms.filter((r) => PE.cols.some((c) => (peGet(r, c.k) || "").toLowerCase().includes(q)));
+  const f = peFind();
+  if (!f.q) return PE.cur.pms;
+  return PE.cur.pms.filter((r) => peHitKeys(r, PE.cols, f).length);
+}
+function peFolderCols(fo) {      // column keys of another folder (name, desc, every field)
+  const ks = new Set(["__name", "__desc"]);
+  for (const r of fo.pms) { const ed = peKid(r.el, "ExtendedData"); if (!ed) continue;
+    for (const sd of peKids(ed, "SchemaData")) for (const x of peKids(sd, "SimpleData")) ks.add(x.getAttribute("name"));
+    for (const d of peKids(ed, "Data")) ks.add(d.getAttribute("name")); }
+  return [...ks].map((k) => ({ k }));
+}
+function peRenderFindRes() {
+  const box = $("pefindres"), f = peFind(); box.innerHTML = "";
+  if (!f.q) return;
+  const here = PE.visible ? PE.visible.length : 0;
+  const t = document.createElement("span"); t.className = "msg";
+  t.textContent = here ? `${here} ketemu di folder ini.` : "Tidak ada di folder ini.";
+  box.append(t);
+  if (!$("pefall").checked) return;
+  for (const fo of PE.folders) {
+    if (fo === PE.cur || !fo.pms.length) continue;
+    const n = fo.pms.filter((r) => peHitKeys(r, peFolderCols(fo), f).length).length;
+    if (!n) continue;
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = `${fo.path} · ${n}`;
+    b.onclick = () => { PE.keepFind = true; peSelectFolder(fo); };
+    box.append(b);
+  }
 }
 const peTargets = () => { const v = peRows(); const s = v.filter((r) => PE.sel.has(r)); return s.length ? s : v; };
 
@@ -1163,7 +1242,9 @@ function peRenderTable() {
   for (const c of PE.cols) { const h = document.createElement("th"); h.textContent = c.label; if (c.k[0] !== "_" && c.label !== c.k) { const s = document.createElement("small"); s.textContent = c.k; h.append(s); } hr.append(h); }
   th.append(hr); t.append(th);
   const tb = document.createElement("tbody");
+  const ff = peFind();
   rows.forEach((r, i) => {
+    const hits = new Set(peHitKeys(r, PE.cols, ff));
     const tr = document.createElement("tr"); tr.dataset.i = i; r.tr = tr;
     if (PE.sel.has(r)) tr.classList.add("sel");
     if (PE.hot === r) tr.classList.add("hot");
@@ -1179,6 +1260,7 @@ function peRenderTable() {
       const td = document.createElement("td"); const v = peGet(r, c.k);
       td.contentEditable = "true"; td.spellcheck = false; td.dataset.k = c.k; td.textContent = v ?? "";
       if (c.k in r.orig && r.orig[c.k] !== (v ?? "")) td.classList.add("chg");
+      if (hits.has(c.k)) td.classList.add("hit");
       tr.append(td);
     }
     tb.append(tr);
@@ -1196,6 +1278,7 @@ function peWrite(r, k, val, td) {
   peSet(r, k, val);
   const changed = r.orig[k] !== val;
   if (td) td.classList.toggle("chg", changed);
+  peSyncCell(r, k, val, td);
   PE.edits = PE.all.reduce((n, x) => n + Object.keys(x.orig).filter((kk) => x.orig[kk] !== (peGet(x, kk) ?? "")).length, 0);
   clearTimeout(PE.st); PE.st = setTimeout(() => { peSummary(); if (k === "__name") peRenderMap(); }, 200);
 }
@@ -1218,7 +1301,7 @@ $("pegrid").addEventListener("keydown", (ev) => {
 $("pegrid").addEventListener("focusin", (ev) => {
   const td = ev.target.closest("td[data-k]"); if (!td) return;
   const r = PE.visible[+td.parentElement.dataset.i];
-  if (PE.hot !== r) { PE.hot?.tr?.classList.remove("hot"); PE.hot = r; td.parentElement.classList.add("hot"); peRenderMap(); }
+  if (PE.hot !== r) { PE.hot?.tr?.classList.remove("hot"); PE.hot = r; td.parentElement.classList.add("hot"); PE.pop = r; peRenderPop(); peRenderMap(); }
 });
 $("pegrid").addEventListener("paste", (ev) => {
   const td = ev.target.closest("td[data-k]"); if (!td) return;
@@ -1236,6 +1319,9 @@ $("pegrid").addEventListener("paste", (ev) => {
 });
 
 function peRenderTools() {
+  const fc = $("pefcol"), keep = fc.value; fc.innerHTML = '<option value="*">Semua kolom</option>';
+  for (const c of PE.cols) { const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; fc.append(o); }
+  if ([...fc.options].some((o) => o.value === keep)) fc.value = keep;
   const fs = $("pebfield"); fs.innerHTML = "";
   for (const c of PE.cols) { const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; fs.append(o); }
   const ts = $("petpl"); ts.innerHTML = "";
@@ -1281,7 +1367,19 @@ $("pecoord").onclick = () => {
   for (const r of peTargets()) { if (r.geom !== "Point" || !r.coords[0]) continue; const [x, y] = r.coords[0][0]; peWrite(r, lat.k, y.toFixed(6)); peWrite(r, lon.k, x.toFixed(6)); }
   peRenderTable();
 };
-$("pefilter").oninput = () => { peRenderTable(); peRenderMap(); };
+const peDoFind = () => { peRenderTable(); peRenderMap(!!$("pefilter").value.trim() && PE.visible.length > 0); peRenderFindRes(); };
+$("pefilter").oninput = peDoFind; $("pefcol").onchange = peDoFind; $("pefexact").onchange = peDoFind; $("pefall").onchange = peDoFind;
+$("pefrepgo").onclick = () => {
+  const f = peFind(); if (!f.q || !PE.cur) return;
+  const rep = $("pefrep").value, rx = new RegExp($("pefilter").value.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+  let n = 0;
+  for (const r of peTargets()) for (const k of peHitKeys(r, PE.cols, f)) {
+    const v = peGet(r, k) || "", nv = f.exact ? rep : v.replace(rx, rep);
+    if (nv !== v) { peWrite(r, k, nv); n++; }
+  }
+  $("pefilter").value = rep; peDoFind();
+  $("pefindres").prepend(Object.assign(document.createElement("span"), { className: "pill ok", textContent: n + " sel diganti" }));
+};
 $("pecopy").onclick = async () => {
   const rows = peRows(), head = ["Posisi", ...PE.cols.map((c) => c.label)];
   const tsv = [head, ...rows.map((r) => [pePos(r), ...PE.cols.map((c) => (peGet(r, c.k) ?? "").replace(/[\t\n]/g, " "))])].map((l) => l.join("\t")).join("\n");
@@ -1330,6 +1428,7 @@ function peRenderMap(fit) {
     labels += `<text x="${x + 5 * u}" y="${y - 4 * u}" font-size="${10.5 * u}" fill="var(--fg)" font-family="var(--sans)">${(peGet(r, "__name") || "").replace(/[&<]/g, (c) => c === "&" ? "&amp;" : "&lt;")}</text>`;
   }
   svg.innerHTML = `<g>${lines}${dots}${hot}${labels}</g>`;
+  PE.P = P; pePlacePop();
 }
 (function peMapEvents() {
   const svg = $("pemap"); let drag = null;
@@ -1352,12 +1451,13 @@ function peRenderMap(fit) {
     const r = PE.visible[+hit.dataset.i]; if (!r) return;
     if (ev.ctrlKey || ev.metaKey || ev.shiftKey) { PE.sel.has(r) ? PE.sel.delete(r) : PE.sel.add(r); peRenderTable(); }
     PE.hot?.tr?.classList.remove("hot"); PE.hot = r; r.tr?.classList.add("hot");
-    r.tr?.scrollIntoView({ block: "center", behavior: "smooth" }); peRenderMap();
+    r.tr?.scrollIntoView({ block: "nearest", behavior: "smooth" }); PE.pop = r; peRenderPop(); peRenderMap();
   });
 })();
 
 // ---- save ----
 async function peBuild() {
+  peBalloons();
   let xml = new XMLSerializer().serializeToString(PE.doc);
   if (!/^<\?xml/.test(xml)) xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
   const data = new TextEncoder().encode(xml);
@@ -1412,6 +1512,114 @@ $("pefile").onchange = () => peLoad($("pefile").files[0]);
   d.addEventListener("drop", (e) => peLoad(e.dataTransfer.files[0]));
 })();
 addEventListener("beforeunload", (e) => { if (PE.edits) { e.preventDefault(); e.returnValue = ""; } });
+
+// ---- Google Earth style balloon: label (bold) : value, editable in place ----
+const peEsc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function peRenderPop() {
+  let box = $("pepop");
+  if (!box) { box = document.createElement("div"); box.id = "pepop"; box.className = "pe-pop"; $("pemap").parentElement.append(box); peBindPop(box); }
+  const r = PE.pop;
+  if (!r || !PE.cur || !PE.cur.pms.includes(r)) { box.hidden = true; return; }
+  const cols = PE.cols.filter((c) => c.k !== "__desc");
+  const name = cols.find((c) => c.k === "__name");
+  const rows = cols.filter((c) => c.k !== "__name").map((c) => {
+    const v = peGet(r, c.k) ?? "";
+    return `<tr><th>${peEsc(c.label)}</th><td contenteditable="true" spellcheck="false" data-k="${peEsc(c.k)}" class="${c.k in r.orig && r.orig[c.k] !== v ? "chg" : ""}">${peEsc(v)}</td></tr>`;
+  }).join("");
+  const c = r.coords[0] && r.coords[0][0];
+  box.innerHTML = `<button type="button" class="x" aria-label="Tutup">×</button>
+    <div class="ttl" contenteditable="true" spellcheck="false" data-k="__name">${peEsc(peGet(r, "__name"))}</div>
+    <table>${rows || '<tr><td class="none">Belum ada popup. Pasang template dulu.</td></tr>'}
+    ${r.geom === "Point" && c ? `<tr class="geo"><th>LATITUDE</th><td>${c[1].toFixed(6)}</td></tr><tr class="geo"><th>LONGITUDE</th><td>${c[0].toFixed(6)}</td></tr>` : ""}</table>`;
+  box.hidden = false;
+  pePlacePop();
+}
+function pePlacePop() {
+  const box = $("pepop"), r = PE.pop;
+  if (!box || box.hidden || !r || !r.coords[0] || !PE.P || !PE.view) return;
+  const svg = $("pemap"), rect = svg.getBoundingClientRect(), [vx, vy, vw, vh] = PE.view;
+  const k = Math.min(rect.width / vw, rect.height / vh), ox = (rect.width - vw * k) / 2, oy = (rect.height - vh * k) / 2;
+  const seg = r.coords[0], [x, y] = PE.P(seg[Math.floor(seg.length / 2)]);
+  const sx = ox + (x - vx) * k, sy = oy + (y - vy) * k;
+  const W = box.offsetWidth, H = box.offsetHeight;
+  let left = Math.max(4, Math.min(rect.width - W - 4, sx - W / 2)), top = sy - H - 14, below = false;
+  if (top < 4) { top = sy + 14; below = true; }
+  box.style.left = left + "px"; box.style.top = top + "px";
+  box.classList.toggle("below", below);
+  box.style.setProperty("--ax", Math.max(14, Math.min(W - 14, sx - left)) + "px");
+  box.classList.toggle("off", sx < 0 || sy < 0 || sx > rect.width || sy > rect.height);
+}
+function peBindPop(box) {
+  box.addEventListener("click", (ev) => { if (ev.target.closest(".x")) { PE.pop = null; box.hidden = true; } });
+  box.addEventListener("input", (ev) => {
+    const el = ev.target.closest("[data-k]"); if (!el || !PE.pop) return;
+    const k = el.dataset.k, v = el.textContent.replace(/\n/g, " ");
+    peWrite(PE.pop, k, v);
+    if (k !== "__name") el.classList.toggle("chg", PE.pop.orig[k] !== v);
+  });
+  box.addEventListener("keydown", (ev) => {
+    const el = ev.target.closest("[data-k]"); if (!el) return;
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      const all = [...box.querySelectorAll("[data-k]")], i = all.indexOf(el), nx = all[i + 1];
+      if (nx) { nx.focus(); getSelection().selectAllChildren(nx); } else el.blur();
+    } else if (ev.key === "Escape") el.blur();
+  });
+  box.addEventListener("paste", (ev) => {
+    if (!ev.target.closest("[data-k]")) return;
+    ev.preventDefault();
+    document.execCommand("insertText", false, (ev.clipboardData.getData("text/plain") || "").replace(/[\r\n\t]+/g, " ").trim());
+  });
+}
+// keep the table and the balloon showing the same value
+function peSyncCell(r, k, val, src) {
+  if (PE.pop === r) {
+    const el = $("pepop")?.querySelector(`[data-k="${CSS.escape(k)}"]`);
+    if (el && el !== document.activeElement) { el.textContent = val; if (k !== "__name") el.classList.toggle("chg", r.orig[k] !== val); }
+  }
+  if (r.tr && !src) {
+    const td = r.tr.querySelector(`td[data-k="${CSS.escape(k)}"]`);
+    if (td && td !== document.activeElement) { td.textContent = val; td.classList.toggle("chg", r.orig[k] !== val); }
+  }
+}
+addEventListener("resize", () => pePlacePop());
+
+// ---- Google Earth balloon: bold label + value, no boxes, no "Directions" line (same look as CMLD / ABD KMZ) ----
+function peStyleById(id) { for (const t of ["Style", "StyleMap"]) for (const e of PE.doc.getElementsByTagNameNS("*", t)) if (e.getAttribute("id") === id) return e; return null; }
+function peBalloonText(pm) {
+  const own = peKids(pm, "Style").map((st) => peKid(peKid(st, "BalloonStyle"), "text")?.textContent).find((t) => t);
+  if (own) return own;
+  let st = peStyleById((peKid(pm, "styleUrl")?.textContent || "").trim().replace(/^.*#/, ""));
+  if (st && st.localName === "StyleMap") {
+    const pair = peKids(st, "Pair").find((p) => (peKid(p, "key")?.textContent || "").trim() === "normal") || peKids(st, "Pair")[0];
+    st = pair ? (peKid(pair, "Style") || peStyleById((peKid(pair, "styleUrl")?.textContent || "").trim().replace(/^.*#/, ""))) : null;
+  }
+  return st ? peKid(peKid(st, "BalloonStyle"), "text")?.textContent || "" : "";
+}
+function peBalloons() {
+  (PE.added || []).forEach((e) => e.remove()); PE.added = [];
+  const sch = peSchemas(), esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  for (const r of PE.all) {
+    const pm = r.el, ed = peKid(pm, "ExtendedData"); if (!ed) continue;
+    const rows = [];
+    for (const sd of peKids(ed, "SchemaData")) {
+      const s = sch[(sd.getAttribute("schemaUrl") || "").replace(/^.*#/, "")];
+      for (const x of peKids(sd, "SimpleData")) {
+        const n = x.getAttribute("name");
+        rows.push([s?.fields.find((y) => y.name === n)?.label || n, s ? `$[${s.name}/${n}]` : `$[${n}]`, n]);
+      }
+    }
+    for (const d of peKids(ed, "Data")) { const n = d.getAttribute("name"); rows.push([peKid(d, "displayName")?.textContent || n, `$[${n}]`, n]); }
+    if (!rows.length) continue;
+    const cur = peBalloonText(pm);
+    if (cur && rows.every((x) => cur.includes("/" + x[2] + "]") || cur.includes("$[" + x[2] + "]"))) continue;   // existing balloon already shows every field
+    const text = '<table border="0">\n' + rows.map((x) => `<tr><td><b>${esc(x[0])}</b></td><td>${x[1]}</td></tr>`).join("\n") + "\n</table>";
+    const bs = peNew("BalloonStyle"), t = peNew("text"); t.append(PE.doc.createCDATASection(text)); bs.append(t);
+    let st = peKids(pm, "Style")[0];
+    if (st) { const old = peKid(st, "BalloonStyle"); if (old) old.replaceWith(bs); else st.append(bs); PE.added.push(bs); }
+    else { st = peNew("Style"); st.append(bs); pm.insertBefore(st, ed); PE.added.push(st); }
+  }
+}
 
 </script>
 </body>
