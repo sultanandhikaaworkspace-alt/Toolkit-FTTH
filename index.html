@@ -417,11 +417,6 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <button type="button" class="sec" id="pebgo">Isi</button>
         </div>
         <div class="grp">
-          <b>Template popup</b>
-          <label class="f">Template <select id="petpl"></select></label>
-          <button type="button" class="sec" id="petplgo">Pasang</button>
-        </div>
-        <div class="grp">
           <b>Kolom</b>
           <input type="text" id="pecolname" autocomplete="off" placeholder="nama kolom baru" style="width:150px">
           <button type="button" class="sec" id="pecoladd">Tambah</button>
@@ -444,7 +439,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
-      <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, template, dan Lat/Long berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. <span class="pe-count" id="pecount"></span></p>
+      <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. Folder POLE, FAT, FDT dan CABLE DISTRIBUTION yang belum punya popup langsung dibuatkan popup format ABD. <span class="pe-count" id="pecount"></span></p>
       <div class="pe-body">
         <div class="pe-grid" id="pegrid"></div>
         <div class="pe-map">
@@ -1171,8 +1166,10 @@ function peSelectFolder(f) {
   const cnt = {};
   for (const r of f.pms) for (const sd of peKids(peKid(r.el, "ExtendedData"), "SchemaData")) { const u = (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, ""); cnt[u] = (cnt[u] || 0) + 1; }
   f.schema = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || f.schema || null;
+  const auto = peAutoTpl(f);
   $("pework").hidden = false;
   peRenderFolders(); peBuildCols(); peRenderTools(); peRenderTable(); peRenderMap(true); peRenderFindRes();
+  if (auto) { $("pecount").textContent = `${auto} ${PE.cur.pms[0].geom === "Point" ? "titik" : "garis"} dibuatkan popup ${PE.cur.name} (format ABD), isinya sudah diisi dari nama dan koordinat. Cek lalu lengkapi.`; peSummary(); }
 }
 
 function peBuildCols() {
@@ -1331,14 +1328,6 @@ function peRenderTools() {
   cd.disabled = $("pecoldelgo").disabled = !cd.options.length; peDisarm();
   const fs = $("pebfield"); fs.innerHTML = "";
   for (const c of PE.cols) { const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; fs.append(o); }
-  const ts = $("petpl"); ts.innerHTML = "";
-  const sch = peSchemas(), ids = new Set();
-  for (const [id, s] of Object.entries(sch)) { ids.add(id); const o = document.createElement("option"); o.value = "s:" + id; o.textContent = s.name + " (dari file)"; ts.append(o); }
-  PE_TPL.forEach((t, i) => { if (ids.has(t.id)) return; const o = document.createElement("option"); o.value = "t:" + i; o.textContent = t.label; ts.append(o); });
-  // preselect a template that matches the folder name
-  const nm = PE.cur.name.toUpperCase();
-  const guess = [...ts.options].find((o) => { const t = o.textContent.toUpperCase(); return (nm.includes("POLE") && t.startsWith("POLE")) || (nm.includes("FAT") && t.startsWith("FAT")) || (nm.includes("FDT") && t.startsWith("FDT")) || (nm.includes("CABLE") && /LINE/.test(t)); });
-  if (PE.cur.schema && sch[PE.cur.schema]) ts.value = "s:" + PE.cur.schema; else if (guess) ts.value = guess.value;
 }
 
 $("pebgo").onclick = () => {
@@ -1349,18 +1338,42 @@ $("pebgo").onclick = () => {
   }
   peRenderTable();
 };
-$("petplgo").onclick = () => {
-  const v = $("petpl").value; if (!v || !PE.cur) return;
-  let id, fields;
-  if (v.startsWith("s:")) { id = v.slice(2); fields = peSchemas()[id].fields.map((x) => x.name); }
-  else { const t = PE_TPL[+v.slice(2)]; id = peEnsureSchema(t); fields = t.f.map((x) => x[0]); }
-  for (const r of peTargets()) {
+function pePoleAt(c, maxM = 6) {
+  let best = null, bd = maxM;
+  for (const fo of PE.folders) { if (!/POLE|TIANG/i.test(fo.name)) continue;
+    for (const p of fo.pms) { const q = p.geom === "Point" && p.coords[0] && p.coords[0][0]; if (!q) continue;
+      const d = peLen([c, q]); if (d < bd) { bd = d; best = p; } } }
+  return best;
+}
+// folders named POLE / FAT / FDT / CABLE get the ABD popup automatically when their points have none
+function peAutoTpl(f) {
+  const nm = (f.name || "").toUpperCase();
+  const t = /POLE|TIANG/.test(nm) ? PE_TPL[0] : /\bFAT\b/.test(nm) ? PE_TPL[1] : /\bFDT\b/.test(nm) ? PE_TPL[2] : /CABLE|KABEL/.test(nm) && !/DROP/.test(nm) ? PE_TPL[3] : null;
+  if (!t) return 0;
+  const bare = f.pms.filter((r) => !peKid(r.el, "ExtendedData"));
+  if (!bare.length) return 0;
+  const id = peEnsureSchema(t), fields = t.f.map((x) => x[0]);
+  for (const r of bare) {
     peSchemaData(r.el, id);
-    for (const f of fields) if (peFieldEl(r.el, f) == null) peCreate(r.el, f, id);
+    for (const k of fields) if (peFieldEl(r.el, k) == null) peCreate(r.el, k, id);
+    const c = r.geom === "Point" && r.coords[0] && r.coords[0][0];
+    const set = (k, v) => { r.orig[k] = ""; peSet(r, k, v); };
+    if (c) { if (fields.includes("Coordinate__Lat__NEW")) set("Coordinate__Lat__NEW", c[1].toFixed(6)); if (fields.includes("Coordinate__Long__NEW")) set("Coordinate__Long__NEW", c[0].toFixed(6)); }
+    if (t === PE_TPL[0]) set("Pole_ID__New_", peGet(r, "__name") || "");
+    if (t === PE_TPL[1] || t === PE_TPL[2]) {
+      set("FAT_ID_NETWORK_ID", peGet(r, "__name") || "");
+      const p = c && pePoleAt(c);                 // FAT / FDT sits on a pole: take that pole's ID and position
+      if (p) {
+        set("Pole_ID__New_", peGet(p, "Pole_ID__New_") || peGet(p, "__name") || "");
+        const pc = p.coords[0][0]; set("Coordinate__Lat__NEW", pc[1].toFixed(6)); set("Coordinate__Long__NEW", pc[0].toFixed(6));
+        for (const k of ["Pole_Provider__New_", "Pole_Type"]) { const v = peGet(p, k); if (v) set(k, v); }
+      }
+    }
+    if (t === PE_TPL[3]) set("LINE", peGet(r, "__name") || "");
   }
-  PE.cur.schema = PE.cur.schema || id;
-  peBuildCols(); peRenderTable(); peRenderTools(); peSummary();
-};
+  f.schema = f.schema || id; PE.dirty = true;
+  return bare.length;
+}
 $("pecoladd").onclick = () => {
   const n = $("pecolname").value.trim().replace(/\s+/g, "_"); if (!n || !PE.cur) return;
   if (!PE.cols.some((c) => c.k === n)) PE.cols.push({ k: n, label: n });
