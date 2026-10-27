@@ -181,6 +181,8 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pe-find input[type=search] { font: 13px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 170px; }
 .pe-findres { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pe-findres:empty { display: none; }
+#pecoldel { font: 13px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 170px; }
+button.sec.danger { border-color: var(--err); color: var(--err); background: var(--err-bg); }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -423,6 +425,8 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
           <b>Kolom</b>
           <input type="text" id="pecolname" autocomplete="off" placeholder="nama kolom baru" style="width:150px">
           <button type="button" class="sec" id="pecoladd">Tambah</button>
+          <select id="pecoldel" aria-label="Kolom yang dihapus"></select>
+          <button type="button" class="sec" id="pecoldelgo">Hapus kolom</button>
           <button type="button" class="sec" id="pecoord">Isi Lat/Long dari titik</button>
         </div>
         <div class="grp">
@@ -1322,6 +1326,9 @@ function peRenderTools() {
   const fc = $("pefcol"), keep = fc.value; fc.innerHTML = '<option value="*">Semua kolom</option>';
   for (const c of PE.cols) { const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; fc.append(o); }
   if ([...fc.options].some((o) => o.value === keep)) fc.value = keep;
+  const cd = $("pecoldel"); cd.innerHTML = "";
+  for (const c of PE.cols) { if (c.k[0] === "_") continue; const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; cd.append(o); }
+  cd.disabled = $("pecoldelgo").disabled = !cd.options.length; peDisarm();
   const fs = $("pebfield"); fs.innerHTML = "";
   for (const c of PE.cols) { const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; fs.append(o); }
   const ts = $("petpl"); ts.innerHTML = "";
@@ -1511,7 +1518,7 @@ $("pefile").onchange = () => peLoad($("pefile").files[0]);
   ["dragleave", "drop"].forEach((t) => d.addEventListener(t, (e) => { e.preventDefault(); d.classList.remove("over"); }));
   d.addEventListener("drop", (e) => peLoad(e.dataTransfer.files[0]));
 })();
-addEventListener("beforeunload", (e) => { if (PE.edits) { e.preventDefault(); e.returnValue = ""; } });
+addEventListener("beforeunload", (e) => { if (PE.edits || PE.dirty) { e.preventDefault(); e.returnValue = ""; } });
 
 // ---- Google Earth style balloon: label (bold) : value, editable in place ----
 const peEsc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -1612,7 +1619,9 @@ function peBalloons() {
     for (const d of peKids(ed, "Data")) { const n = d.getAttribute("name"); rows.push([peKid(d, "displayName")?.textContent || n, `$[${n}]`, n]); }
     if (!rows.length) continue;
     const cur = peBalloonText(pm);
-    if (cur && rows.every((x) => cur.includes("/" + x[2] + "]") || cur.includes("$[" + x[2] + "]"))) continue;   // existing balloon already shows every field
+    const have = new Set(rows.map((x) => x[2]));
+    const refs = [...cur.matchAll(/\$\[(?:[^\]\/]+\/)?([^\]\/]+?)(?:\/displayName)?\]/g)].map((m) => m[1]).filter((n) => !["name", "description", "address", "Snippet", "id", "geDirections"].includes(n));
+    if (cur && rows.every((x) => cur.includes("/" + x[2] + "]") || cur.includes("$[" + x[2] + "]")) && refs.every((n) => have.has(n))) continue;   // existing balloon already shows every field
     const text = '<table border="0">\n' + rows.map((x) => `<tr><td><b>${esc(x[0])}</b></td><td>${x[1]}</td></tr>`).join("\n") + "\n</table>";
     const bs = peNew("BalloonStyle"), t = peNew("text"); t.append(PE.doc.createCDATASection(text)); bs.append(t);
     let st = peKids(pm, "Style")[0];
@@ -1620,6 +1629,33 @@ function peBalloons() {
     else { st = peNew("Style"); st.append(bs); pm.insertBefore(st, ed); PE.added.push(st); }
   }
 }
+
+// ---- delete a column (field) from every placemark in this folder; two clicks to confirm ----
+function peDisarm() { const b = $("pecoldelgo"); delete b.dataset.arm; b.textContent = "Hapus kolom"; b.classList.remove("danger"); }
+$("pecoldel").onchange = peDisarm;
+$("pecoldelgo").onclick = () => {
+  const k = $("pecoldel").value, b = $("pecoldelgo"); if (!k || !PE.cur) return;
+  const label = PE.cols.find((c) => c.k === k)?.label || k;
+  if (b.dataset.arm !== k) {
+    b.dataset.arm = k; b.textContent = "Yakin hapus \"" + label + "\"?"; b.classList.add("danger");
+    clearTimeout(PE.armT); PE.armT = setTimeout(peDisarm, 5000); return;
+  }
+  clearTimeout(PE.armT); peDisarm();
+  let n = 0;
+  for (const r of PE.cur.pms) {
+    const el = peFieldEl(r.el, k); if (!el) continue;
+    (el.localName === "value" ? el.parentElement : el).remove(); delete r.orig[k]; n++;
+  }
+  for (const [id, sc] of Object.entries(peSchemas())) {        // drop the schema field when nothing uses it any more
+    const used = PE.all.some((r) => peKids(peKid(r.el, "ExtendedData"), "SchemaData").some((sd) =>
+      (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, "") === id && peKids(sd, "SimpleData").some((x) => x.getAttribute("name") === k)));
+    if (!used) peKids(sc.el, "SimpleField").filter((f) => f.getAttribute("name") === k).forEach((f) => f.remove());
+  }
+  PE.dirty = true;
+  if ($("pebfield").value === k) $("pebfield").value = "__name";
+  peBuildCols(); peRenderTools(); peRenderTable(); peRenderPop(); peRenderMap(); peSummary();
+  $("pecount").textContent = `Kolom "${label}" dihapus dari ${n} titik.`;
+};
 
 </script>
 </body>
