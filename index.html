@@ -466,7 +466,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
         <div class="grp">
           <b>Tabel</b>
           <button type="button" class="sec" id="pecopy">Salin ke Excel</button>
-          <button type="button" class="sec" id="peroute" title="Urutkan baris mengikuti garis kabel, mulai dari OLT (feeder) atau FDT / HUB BOX">Urutkan ikut kabel</button>
+          <button type="button" class="sec" id="peroute" title="Urutkan baris mengikuti garis kabel: backbone dari AGG ke OLT, feeder dari OLT ke FDT / HUB BOX">Urutkan ikut kabel</button>
           <label class="pe-ck" title="Isi Pole ID dan nama titik 1A, 2A, 3A … sesuai urutan; huruf mengikuti provider (A=LN, B=Alita, C=FMI, D=MyRep, E=MTI, G=XL, P=PLN)"><input type="checkbox" id="perouteid"> + nomori Pole ID</label>
         </div>
         <div class="grp pe-find">
@@ -1643,16 +1643,17 @@ $("pecoldelgo").onclick = () => {
   $("pecount").textContent = `Kolom "${label}" dihapus dari ${n} titik.`;
 };
 
-// ---- order a folder along the cable: start at the OLT (feeder) or the FDT / HUB BOX, then follow the lines ----
+// ---- order a folder along the cable: backbone from the AGG, feeder from the OLT, to the end of the line (OLT / FDT / HUB BOX) ----
 const PE_PROV_LETTER = [[/ALITA/i, "B"], [/FMI/i, "C"], [/MY\s*REP/i, "D"], [/MTI/i, "E"], [/\bXL\b/i, "G"], [/PLN/i, "P"], [/\bLN\b|LINK\s*NET/i, "A"]];
 function peRouteStart() {
   const pts = (re) => PE.folders.filter((f) => re.test(f.name)).flatMap((f) => f.pms).concat(PE.all.filter((r) => re.test(peGet(r, "__name") || "")))
     .filter((r) => r.geom === "Point" && r.coords[0]);
-  for (const [re, label] of [[/\bOLT\b/i, "OLT"], [/\bFDT\b/i, "FDT"], [/HUB\s*BOX|\bHB\b/i, "HUB BOX"]]) { const p = pts(re)[0]; if (p) return { p, label }; }
+  // backbone: AGG → OLT, feeder: OLT → FDT / HUB BOX (distribution is not handled here)
+  for (const [re, label] of [[/\bAGG\b/i, "AGG"], [/\bOLT\b/i, "OLT"]]) { const p = pts(re)[0]; if (p) return { p, label }; }
   return null;
 }
 function peRouteOrder(recs) {
-  const st = peRouteStart(); if (!st) return { err: "Tidak ada titik OLT, FDT atau HUB BOX untuk titik awal." };
+  const st = peRouteStart(); if (!st) return { err: "Tidak ada titik AGG atau OLT untuk titik awal (untuk backbone / feeder)." };
   const lat0 = st.p.coords[0][0][1], kx = Math.cos(lat0 * Math.PI / 180) * 111320, M = (c) => [c[0] * kx, c[1] * 110540];
   const S = M(st.p.coords[0][0]);
   const cableF = PE.folders.filter((f) => /CABLE|KABEL/i.test(f.name) && !/DROP/i.test(f.name));
@@ -1671,7 +1672,7 @@ function peRouteOrder(recs) {
   const keyed = recs.map((r, idx) => {
     const c = r.geom === "Point" && r.coords[0] ? r.coords[0][0] : r.coords[0]?.[0]; if (!c) return { r, k: [9, 0, idx] };
     const q = M(c), dS = Math.hypot(q[0] - S[0], q[1] - S[1]);
-    if (dS < 8) return { r, k: [0, 0, dS] };                       // the pole at the OLT / FDT itself
+    if (dS < 8) return { r, k: [0, 0, dS] };                       // the pole at the AGG / OLT itself
     let bl = -1, bd = Infinity, bc = 0;
     lines.forEach((L, li) => { const [d, ch] = proj(q, L); if (d < bd - 0.5) { bd = d; bl = li; bc = ch; } });
     return bl >= 0 && bd <= 40 ? { r, k: [1, bl, bc] } : { r, k: [2, 0, dS] };
