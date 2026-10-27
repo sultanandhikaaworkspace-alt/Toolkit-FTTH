@@ -124,6 +124,42 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tag { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
 .tag.ready { background: var(--ok-bg); color: var(--ok); }
 .tag.plan { background: var(--line); color: var(--muted); }
+/* ---- EDIT POPUP KMZ ---- */
+.pe-top { display: grid; grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .pe-top { grid-template-columns: minmax(0, 1fr); } }
+.pe-folders { display: flex; flex-wrap: wrap; gap: 6px; }
+.pe-folders button { font: 500 12.5px var(--sans); border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 4px 11px; cursor: pointer; }
+.pe-folders button:hover { border-color: var(--accent); }
+.pe-folders button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.pe-folders button:disabled { opacity: .45; cursor: default; }
+.pe-folders button small { opacity: .75; margin-left: 4px; font-family: var(--mono); }
+.pe-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.pe-tools label.f { min-width: 140px; }
+.pe-tools select, .pe-tools input[type=text] { font: 13px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.pe-tools .grp { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
+.pe-tools .grp > b { width: 100%; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.pe-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 380px); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .pe-body { grid-template-columns: minmax(0, 1fr); } }
+.pe-grid { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 6px; }
+.pe-grid table { font-size: 12.5px; }
+.pe-grid thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--fg); }
+.pe-grid thead th small { display: block; font: 10.5px var(--mono); color: var(--muted); font-weight: 400; }
+.pe-grid td { padding: 0; border-right: 1px solid var(--line); white-space: nowrap; }
+.pe-grid td[contenteditable] { padding: 5px 8px; min-width: 80px; outline: none; cursor: text; }
+.pe-grid td[contenteditable]:focus { box-shadow: inset 0 0 0 2px var(--accent); background: var(--bg); }
+.pe-grid td.ro { padding: 5px 8px; color: var(--muted); font: 11.5px var(--mono); }
+.pe-grid td.ck { padding: 5px 6px; text-align: center; }
+.pe-grid td.chg { background: var(--warn-bg); }
+.pe-grid td.empty0 { color: var(--muted); }
+.pe-grid tr.sel td { background: var(--accent-soft); }
+.pe-grid tr.sel td.chg { background: var(--warn-bg); }
+.pe-grid tr.hot td { box-shadow: inset 0 2px 0 var(--dxf-orange), inset 0 -2px 0 var(--dxf-orange); }
+.pe-map { border: 1px solid var(--line); border-radius: 6px; background: var(--bg); position: relative; }
+.pe-map svg { width: 100%; height: 420px; display: block; cursor: grab; touch-action: none; }
+.pe-map svg.drag { cursor: grabbing; }
+.pe-map .legend { font-size: 12px; color: var(--muted); padding: 6px 8px; display: flex; gap: 12px; flex-wrap: wrap; }
+.pe-map .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.pe-count { font-size: 12.5px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -329,6 +365,62 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </div>
   </div>
   </section>
+  <section id="view-popup" hidden>
+  <p class="back"><a href="#abd" class="backlink">← Kembali</a></p>
+  <div style="display:grid;gap:16px">
+    <div class="pe-top">
+      <div class="panel">
+        <h2>File</h2>
+        <label class="drop" id="pedrop" for="pefile">
+          <input type="file" id="pefile" accept=".kmz,.kml">
+          <strong id="pefname">Pilih file KMZ</strong>
+          <span>Klik atau tarik file .kmz / .kml ke sini. Semua diproses di browser ini.</span>
+        </label>
+        <div class="dl" id="pedl" style="margin-top:12px"><span class="note">Download muncul setelah file dibuka.</span></div>
+      </div>
+      <div class="panel">
+        <div class="summary" id="pesummary"><span class="source">Belum ada file.</span></div>
+        <h2 style="margin-top:12px">Folder</h2>
+        <div class="pe-folders" id="pefolders"><span class="msg">Folder KMZ muncul di sini.</span></div>
+      </div>
+    </div>
+
+    <div class="panel" id="pework" hidden>
+      <div class="pe-tools">
+        <div class="grp">
+          <b>Isi massal</b>
+          <label class="f">Kolom <select id="pebfield"></select></label>
+          <label class="f">Nilai <input type="text" id="pebval" autocomplete="off" placeholder="mis. LN (EXISTING) atau {nama}" title="{nama} = nama titik, {lat} / {lon} = koordinat"></label>
+          <button type="button" class="sec" id="pebgo">Isi</button>
+        </div>
+        <div class="grp">
+          <b>Template popup</b>
+          <label class="f">Template <select id="petpl"></select></label>
+          <button type="button" class="sec" id="petplgo">Pasang</button>
+        </div>
+        <div class="grp">
+          <b>Kolom</b>
+          <input type="text" id="pecolname" autocomplete="off" placeholder="nama kolom baru" style="width:150px">
+          <button type="button" class="sec" id="pecoladd">Tambah</button>
+          <button type="button" class="sec" id="pecoord">Isi Lat/Long dari titik</button>
+        </div>
+        <div class="grp">
+          <b>Tabel</b>
+          <input type="text" id="pefilter" autocomplete="off" placeholder="cari…" style="width:140px">
+          <button type="button" class="sec" id="pecopy">Salin ke Excel</button>
+        </div>
+      </div>
+      <p class="hint">Klik sel untuk edit, Enter = turun. Tempel (Ctrl+V) dari Excel langsung mengisi banyak sel. Isi massal, template, dan Lat/Long berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, berlaku untuk semua baris yang tampil. <span class="pe-count" id="pecount"></span></p>
+      <div class="pe-body">
+        <div class="pe-grid" id="pegrid"></div>
+        <div class="pe-map">
+          <svg id="pemap" role="img" aria-label="Peta titik KMZ"></svg>
+          <div class="legend"><span><i style="background:var(--accent)"></i>folder ini</span><span><i style="background:var(--dxf-orange)"></i>dicentang</span><span><i style="background:var(--dxf-road)"></i>lainnya</span><span>scroll = zoom, geser = pindah</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
 </div>
 
 <script>
@@ -347,6 +439,9 @@ const MENU = {
         { id: "drawing-abd", view: "drawing", name: "DRAWING", status: "ready",
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
+        { id: "popup-abd", view: "popup", name: "EDIT POPUP KMZ", status: "ready",
+          desc: "Buka KMZ, edit isi popup tiap titik/garis langsung di tabel (bisa tempel dari Excel, isi massal, template POLE/FAT/FDT), lihat titiknya di peta, lalu download KMZ lagi.",
+          io: ".kmz → .kmz (popup)" },
         { id: "pdf", name: "PDF diagram", status: "plan",
           desc: "Diagram jaringan siap cetak dalam PDF, dari data yang sama dengan DXF.", io: ".xlsx / .json → .pdf" },
         { id: "foto", name: "Baca catatan lapangan", status: "plan",
@@ -360,6 +455,9 @@ const MENU = {
         { id: "drawing-apd", view: "drawing", name: "DRAWING", status: "ready",
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
+        { id: "popup-apd", view: "popup", name: "EDIT POPUP KMZ", status: "ready",
+          desc: "Buka KMZ, edit isi popup tiap titik/garis langsung di tabel (bisa tempel dari Excel, isi massal, template POLE/FAT/FDT), lihat titiknya di peta, lalu download KMZ lagi.",
+          io: ".kmz → .kmz (popup)" },
       ] },
   ],
 };
@@ -785,6 +883,536 @@ $("dwosm").addEventListener("change", async (e) => {
   dwRun();
 });
 $("dwform").addEventListener("submit", (e) => { e.preventDefault(); dwRun(); });
+
+// ==== EDIT POPUP KMZ: open a KMZ, edit its placemark popups (ExtendedData) in a table, save the KMZ back. Pure JS. ====
+const PE_MODE = "github";     // "github" = blob links, "artifact" = claude.ai downloads capability
+const PE = { file: null, doc: null, others: [], folders: [], cur: null, recs: [], cols: [], sel: new Set(), hot: null, edits: 0, view: null };
+
+// ---- zip (KMZ) read / write, no library ----
+const peCRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function peCrc32(u) { let c = ~0; for (let i = 0; i < u.length; i++) c = peCRC[(c ^ u[i]) & 255] ^ (c >>> 8); return ~c >>> 0; }
+async function peStream(u, cls, fmt) { return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new cls(fmt))).arrayBuffer()); }
+async function peUnzip(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let e = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65558); i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Error("File ini bukan KMZ (zip) yang valid.");
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+  const out = [], td = new TextDecoder();
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error("Isi KMZ rusak.");
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = td.decode(u8.subarray(p + 46, p + 46 + nlen));
+    p += 46 + nlen + xlen + clen;
+    const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+    const raw = u8.subarray(start, start + csize);
+    if (name.endsWith("/")) continue;
+    let data;
+    if (method === 0) data = raw.slice();
+    else if (method === 8) data = await peStream(raw, DecompressionStream, "deflate-raw");
+    else throw new Error("Kompresi KMZ tidak didukung (" + method + ").");
+    out.push({ name, data });
+  }
+  return out;
+}
+async function peZip(files) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = peCrc32(f.data);
+    let body = await peStream(f.data, CompressionStream, "deflate-raw"), method = 8;
+    if (body.length >= f.data.length) { body = f.data; method = 0; }
+    const h = new Uint8Array(30 + nm.length), hv = new DataView(h.buffer);
+    hv.setUint32(0, 0x04034b50, true); hv.setUint16(4, 20, true); hv.setUint16(6, 0x800, true); hv.setUint16(8, method, true);
+    hv.setUint16(12, 0x21, true); hv.setUint32(14, crc, true); hv.setUint32(18, body.length, true); hv.setUint32(22, f.data.length, true);
+    hv.setUint16(26, nm.length, true); h.set(nm, 30);
+    const c = new Uint8Array(46 + nm.length), cv = new DataView(c.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x800, true); cv.setUint16(10, method, true);
+    cv.setUint16(14, 0x21, true); cv.setUint32(16, crc, true); cv.setUint32(20, body.length, true); cv.setUint32(24, f.data.length, true);
+    cv.setUint16(28, nm.length, true); cv.setUint32(42, off, true); c.set(nm, 46);
+    parts.push(h, body); central.push(c); off += h.length + body.length;
+  }
+  const cs = central.reduce((a, b) => a + b.length, 0), e = new Uint8Array(22), ev = new DataView(e.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true); ev.setUint32(12, cs, true); ev.setUint32(16, off, true);
+  return new Uint8Array(await new Blob([...parts, ...central, e]).arrayBuffer());
+}
+
+// ---- KML helpers ----
+const peKids = (el, name) => el ? [...el.children].filter((c) => c.localName === name) : [];
+const peKid = (el, name) => peKids(el, name)[0] || null;
+const peNS = () => PE.doc.documentElement.namespaceURI;
+const peNew = (name) => PE.doc.createElementNS(peNS(), name);
+const GEOMS = ["Point", "LineString", "LinearRing", "Polygon", "MultiGeometry", "Model", "Track", "MultiTrack"];
+
+const PE_TPL = [
+  { name: "POLE CONVERT", id: "S_POLE_CONVERT_SSSSSS", label: "POLE (ABD)",
+    f: [["Pole_ID__New_", "Pole ID (New)"], ["Coordinate__Lat__NEW", "Coordinate (Lat) NEW"], ["Coordinate__Long__NEW", "Coordinate (Long) NEW"], ["Pole_Provider__New_", "Pole Provider (New)"], ["Pole_Type", "Pole Type"], ["LINE", "LINE"]] },
+  { name: "FAT convert", id: "S_FAT_convert_SSSSSS", label: "FAT (ABD)",
+    f: [["Pole_ID__New_", "Pole ID (New)"], ["Coordinate__Lat__NEW", "Coordinate (Lat) NEW"], ["Coordinate__Long__NEW", "Coordinate (Long) NEW"], ["Pole_Provider__New_", "Pole Provider (New)"], ["Pole_Type", "Pole Type"], ["FAT_ID_NETWORK_ID", "FAT ID/NETWORK ID"]] },
+  { name: "FDT convert", id: "S_FDT_convert_SSSSSS", label: "FDT (ABD)",
+    f: [["Pole_ID__New_", "Pole ID (New)"], ["Coordinate__Lat__NEW", "Coordinate (Lat) NEW"], ["Coordinate__Long__NEW", "Coordinate (Long) NEW"], ["Pole_Provider__New_", "Pole Provider (New)"], ["Pole_Type", "Pole Type"], ["FAT_ID_NETWORK_ID", "FAT ID/NETWORK ID"]] },
+  { name: "CABLE LINE", id: "S_CABLE_LINE_S", label: "Kabel: LINE", f: [["LINE", "LINE"]] },
+];
+
+function peSchemas() {          // id -> {el, name, fields:[{name, label}]}
+  const m = {};
+  for (const s of PE.doc.getElementsByTagNameNS("*", "Schema")) {
+    const fields = peKids(s, "SimpleField").map((f) => ({ name: f.getAttribute("name"), label: (peKid(f, "displayName")?.textContent || f.getAttribute("name")).replace(/<[^>]+>/g, "").trim() }));
+    if (s.getAttribute("id")) m[s.getAttribute("id")] = { el: s, name: s.getAttribute("name") || s.getAttribute("id"), fields };
+  }
+  return m;
+}
+
+function peCoords(pm) {
+  const out = [];
+  for (const c of pm.getElementsByTagNameNS("*", "coordinates")) {
+    const pts = c.textContent.trim().split(/\s+/).map((t) => t.split(",").map(Number)).filter((p) => p.length >= 2 && isFinite(p[0]) && isFinite(p[1]));
+    if (pts.length) out.push(pts);
+  }
+  return out;
+}
+function peGeomType(pm) {
+  for (const g of GEOMS) if (pm.getElementsByTagNameNS("*", g).length) return g === "LinearRing" ? "Polygon" : g;
+  return "";
+}
+function peLen(pts) {
+  let L = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1], pts[i]], R = 6371008.8, r = Math.PI / 180;
+    const dl = (b[1] - a[1]) * r, dn = (b[0] - a[0]) * r * Math.cos((a[1] + b[1]) / 2 * r);
+    L += R * Math.hypot(dl, dn);
+  }
+  return L;
+}
+
+// field cells live in ExtendedData: <SchemaData><SimpleData name> or <Data name><value>
+function peFieldEl(pm, f) {
+  const ed = peKid(pm, "ExtendedData"); if (!ed) return null;
+  for (const sd of peKids(ed, "SchemaData")) for (const s of peKids(sd, "SimpleData")) if (s.getAttribute("name") === f) return s;
+  for (const d of peKids(ed, "Data")) if (d.getAttribute("name") === f) { let v = peKid(d, "value"); if (!v) { v = peNew("value"); d.append(v); } return v; }
+  return null;
+}
+function peGet(r, f) {
+  if (f === "__name") return peKid(r.el, "name")?.textContent ?? "";
+  if (f === "__desc") return peKid(r.el, "description")?.textContent ?? "";
+  return peFieldEl(r.el, f)?.textContent ?? null;
+}
+function peEnsureSchema(tpl) {
+  const sch = peSchemas();
+  if (sch[tpl.id]) {             // add any missing field to the existing schema
+    const have = new Set(sch[tpl.id].fields.map((x) => x.name));
+    for (const [n, l] of tpl.f) if (!have.has(n)) peAddSimpleField(sch[tpl.id].el, n, l);
+    return tpl.id;
+  }
+  const s = peNew("Schema"); s.setAttribute("name", tpl.name); s.setAttribute("id", tpl.id);
+  for (const [n, l] of tpl.f) peAddSimpleField(s, n, l);
+  const docEl = PE.doc.getElementsByTagNameNS("*", "Document")[0] || PE.doc.documentElement;
+  const before = [...docEl.children].find((c) => !["name", "open", "visibility", "link", "description", "Snippet", "Schema"].includes(c.localName));
+  docEl.insertBefore(s, before || null);
+  return tpl.id;
+}
+function peAddSimpleField(schemaEl, name, label) {
+  const f = peNew("SimpleField"); f.setAttribute("type", "string"); f.setAttribute("name", name);
+  const d = peNew("displayName"); d.textContent = "<b>" + (label || name) + "</b>"; f.append(d);
+  schemaEl.append(f);
+}
+function peExtData(pm) {
+  let ed = peKid(pm, "ExtendedData");
+  if (!ed) {
+    ed = peNew("ExtendedData");
+    const g = [...pm.children].find((c) => GEOMS.includes(c.localName));
+    pm.insertBefore(ed, g || null);
+  }
+  return ed;
+}
+function peSchemaData(pm, schemaId) {
+  const ed = peExtData(pm);
+  let sd = peKids(ed, "SchemaData")[0];
+  if (!sd && schemaId) { sd = peNew("SchemaData"); sd.setAttribute("schemaUrl", "#" + schemaId); ed.prepend(sd); }
+  return sd || null;
+}
+// create field f on placemark (schema-aware, in schema order)
+function peCreate(pm, f, schemaId) {
+  const sd = peSchemaData(pm, schemaId);
+  if (!sd) { const d = peNew("Data"); d.setAttribute("name", f); const v = peNew("value"); d.append(v); peExtData(pm).append(d); return v; }
+  const sid = (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, ""), sch = peSchemas()[sid];
+  if (sch && !sch.fields.some((x) => x.name === f)) { peAddSimpleField(sch.el, f, f); }
+  const order = sch ? peSchemas()[sid].fields.map((x) => x.name) : [];
+  const s = peNew("SimpleData"); s.setAttribute("name", f);
+  const idx = order.indexOf(f);
+  const after = idx < 0 ? null : peKids(sd, "SimpleData").find((x) => order.indexOf(x.getAttribute("name")) > idx);
+  sd.insertBefore(s, after || null);
+  return s;
+}
+function peSet(r, f, val) {
+  if (f === "__name" || f === "__desc") {
+    const tag = f === "__name" ? "name" : "description";
+    let el = peKid(r.el, tag);
+    if (!el) { el = peNew(tag); f === "__name" ? r.el.prepend(el) : r.el.insertBefore(el, peKid(r.el, "name")?.nextSibling || r.el.firstChild); }
+    el.textContent = val; return;
+  }
+  let el = peFieldEl(r.el, f);
+  if (!el) el = peCreate(r.el, f, PE.cur && PE.cur.schema);
+  el.textContent = val;
+}
+
+// ---- open file ----
+async function peOpen(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  let files, kmlName;
+  if (/\.kml$/i.test(file.name)) { files = [{ name: "doc.kml", data: buf }]; kmlName = "doc.kml"; }
+  else {
+    files = await peUnzip(buf);
+    const k = files.find((f) => f.name.toLowerCase() === "doc.kml") || files.find((f) => /\.kml$/i.test(f.name));
+    if (!k) throw new Error("Tidak ada file .kml di dalam KMZ.");
+    kmlName = k.name;
+  }
+  const text = new TextDecoder().decode(files.find((f) => f.name === kmlName).data);
+  const doc = new DOMParser().parseFromString(text, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error("KML tidak bisa dibaca (XML rusak).");
+  Object.assign(PE, { file: { name: file.name, kml: kmlName }, doc, others: files, cur: null, sel: new Set(), hot: null, edits: 0, view: null });
+  peIndex();
+  peRenderFolders();
+  const first = PE.folders.find((f) => f.pms.length);
+  if (first) peSelectFolder(first); else $("pework").hidden = true;
+  peSummary();
+  peRenderDl();
+}
+
+function peIndex() {
+  PE.folders = []; PE.all = [];
+  const root = PE.doc.getElementsByTagNameNS("*", "Document")[0] || PE.doc.documentElement;
+  const walk = (el, path) => {
+    const pms = peKids(el, "Placemark");
+    const nm = peKid(el, "name")?.textContent?.trim() || (el === root ? "(dokumen)" : "(tanpa nama)");
+    const p = el === root ? [] : [...path, nm];
+    const recs = pms.map((pm) => ({ el: pm, geom: peGeomType(pm), coords: peCoords(pm), orig: {} }));
+    PE.all.push(...recs);
+    if (el === root ? pms.length : true) PE.folders.push({ el, name: nm, path: p.join(" / ") || nm, pms: recs, depth: p.length });
+    for (const f of peKids(el, "Folder").concat(peKids(el, "Document").filter((d) => d !== root))) walk(f, p);
+  };
+  walk(root, []);
+}
+
+function peSummary() {
+  const sum = $("pesummary"); sum.innerHTML = "";
+  const src = document.createElement("span"); src.className = "source"; src.textContent = "File: " + PE.file.name; sum.append(src);
+  const n = PE.all.length, withPop = PE.all.filter((r) => peKid(r.el, "ExtendedData")).length;
+  sum.append(pill(n + " placemark"), pill(withPop + " punya popup", withPop ? "ok" : "warn"));
+  if (PE.edits) sum.append(pill(PE.edits + " perubahan", "warn"));
+}
+
+function peRenderFolders() {
+  const box = $("pefolders"); box.innerHTML = "";
+  for (const f of PE.folders) {
+    const b = document.createElement("button"); b.type = "button";
+    b.innerHTML = ""; b.append(f.path); const s = document.createElement("small"); s.textContent = f.pms.length; b.append(s);
+    b.disabled = !f.pms.length; b.setAttribute("aria-pressed", PE.cur === f ? "true" : "false");
+    b.onclick = () => peSelectFolder(f);
+    box.append(b);
+  }
+}
+
+function peSelectFolder(f) {
+  PE.cur = f; PE.sel = new Set(); PE.hot = null; $("pefilter").value = "";
+  // folder schema = most used SchemaData schemaUrl among its placemarks
+  const cnt = {};
+  for (const r of f.pms) for (const sd of peKids(peKid(r.el, "ExtendedData"), "SchemaData")) { const u = (sd.getAttribute("schemaUrl") || "").replace(/^.*#/, ""); cnt[u] = (cnt[u] || 0) + 1; }
+  f.schema = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || f.schema || null;
+  $("pework").hidden = false;
+  peRenderFolders(); peBuildCols(); peRenderTable(); peRenderTools(); peRenderMap(true);
+}
+
+function peBuildCols() {
+  const f = PE.cur, sch = peSchemas(), seen = new Map();
+  if (f.schema && sch[f.schema]) for (const x of sch[f.schema].fields) seen.set(x.name, x.label);
+  for (const r of f.pms) {
+    const ed = peKid(r.el, "ExtendedData"); if (!ed) continue;
+    for (const sd of peKids(ed, "SchemaData")) {
+      const s = sch[(sd.getAttribute("schemaUrl") || "").replace(/^.*#/, "")];
+      for (const x of peKids(sd, "SimpleData")) { const n = x.getAttribute("name"); if (!seen.has(n)) seen.set(n, s?.fields.find((y) => y.name === n)?.label || n); }
+    }
+    for (const d of peKids(ed, "Data")) { const n = d.getAttribute("name"); if (!seen.has(n)) seen.set(n, peKid(d, "displayName")?.textContent || n); }
+  }
+  const hasDesc = f.pms.some((r) => peKid(r.el, "description"));
+  PE.cols = [{ k: "__name", label: "Nama" }, ...(hasDesc ? [{ k: "__desc", label: "Deskripsi" }] : []), ...[...seen].map(([k, label]) => ({ k, label }))];
+}
+
+function peRows() {
+  const q = $("pefilter").value.trim().toLowerCase();
+  if (!q) return PE.cur.pms;
+  return PE.cur.pms.filter((r) => PE.cols.some((c) => (peGet(r, c.k) || "").toLowerCase().includes(q)));
+}
+const peTargets = () => { const v = peRows(); const s = v.filter((r) => PE.sel.has(r)); return s.length ? s : v; };
+
+function pePos(r) {
+  const c = r.coords[0]; if (!c) return "";
+  if (r.geom === "Point") return c[0][1].toFixed(6) + ", " + c[0][0].toFixed(6);
+  if (r.geom === "LineString") return "garis · " + Math.round(peLen(c)) + " m";
+  return r.geom.toLowerCase();
+}
+
+function peRenderTable() {
+  const rows = peRows(), box = $("pegrid");
+  const t = document.createElement("table"), th = document.createElement("thead"), hr = document.createElement("tr");
+  const h0 = document.createElement("th"); const all = document.createElement("input"); all.type = "checkbox"; all.title = "Centang semua yang tampil";
+  all.checked = rows.length > 0 && rows.every((r) => PE.sel.has(r));
+  all.onchange = () => { rows.forEach((r) => all.checked ? PE.sel.add(r) : PE.sel.delete(r)); peRenderTable(); peRenderMap(); };
+  h0.append(all); hr.append(h0);
+  const hp = document.createElement("th"); hp.textContent = "Posisi"; hr.append(hp);
+  for (const c of PE.cols) { const h = document.createElement("th"); h.textContent = c.label; if (c.k[0] !== "_" && c.label !== c.k) { const s = document.createElement("small"); s.textContent = c.k; h.append(s); } hr.append(h); }
+  th.append(hr); t.append(th);
+  const tb = document.createElement("tbody");
+  rows.forEach((r, i) => {
+    const tr = document.createElement("tr"); tr.dataset.i = i; r.tr = tr;
+    if (PE.sel.has(r)) tr.classList.add("sel");
+    if (PE.hot === r) tr.classList.add("hot");
+    const c0 = document.createElement("td"); c0.className = "ck"; const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = PE.sel.has(r);
+    cb.onclick = (ev) => {
+      if (ev.shiftKey && PE.lastCk != null) { const [a, b] = [Math.min(PE.lastCk, i), Math.max(PE.lastCk, i)]; for (let k = a; k <= b; k++) cb.checked ? PE.sel.add(rows[k]) : PE.sel.delete(rows[k]); peRenderTable(); }
+      else { cb.checked ? PE.sel.add(r) : PE.sel.delete(r); tr.classList.toggle("sel", cb.checked); }
+      PE.lastCk = i; peCount(); peRenderMap();
+    };
+    c0.append(cb); tr.append(c0);
+    const cp = document.createElement("td"); cp.className = "ro"; cp.textContent = pePos(r); tr.append(cp);
+    for (const c of PE.cols) {
+      const td = document.createElement("td"); const v = peGet(r, c.k);
+      td.contentEditable = "true"; td.spellcheck = false; td.dataset.k = c.k; td.textContent = v ?? "";
+      if (c.k in r.orig && r.orig[c.k] !== (v ?? "")) td.classList.add("chg");
+      tr.append(td);
+    }
+    tb.append(tr);
+  });
+  if (!rows.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = PE.cols.length + 2; td.className = "empty"; td.textContent = "Tidak ada baris."; tr.append(td); tb.append(tr); }
+  t.append(tb); box.innerHTML = ""; box.append(t);
+  PE.visible = rows; peCount();
+}
+function peCount() { $("pecount").textContent = `${PE.visible.length} baris tampil · ${[...PE.sel].filter((r) => PE.cur.pms.includes(r)).length} dicentang.`; }
+
+function peWrite(r, k, val, td) {
+  const before = peGet(r, k) ?? "";
+  if (before === val) return;
+  if (!(k in r.orig)) r.orig[k] = before;
+  peSet(r, k, val);
+  const changed = r.orig[k] !== val;
+  if (td) td.classList.toggle("chg", changed);
+  PE.edits = PE.all.reduce((n, x) => n + Object.keys(x.orig).filter((kk) => x.orig[kk] !== (peGet(x, kk) ?? "")).length, 0);
+  clearTimeout(PE.st); PE.st = setTimeout(() => { peSummary(); if (k === "__name") peRenderMap(); }, 200);
+}
+
+// cell editing: input, Enter = next row, paste = fill a block (TSV from Excel)
+$("pegrid").addEventListener("input", (ev) => {
+  const td = ev.target.closest("td[data-k]"); if (!td) return;
+  const r = PE.visible[+td.parentElement.dataset.i];
+  peWrite(r, td.dataset.k, td.textContent.replace(/\n/g, " "), td);
+});
+$("pegrid").addEventListener("keydown", (ev) => {
+  const td = ev.target.closest("td[data-k]"); if (!td) return;
+  if (ev.key === "Enter" || ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+    ev.preventDefault();
+    const tr = ev.key === "ArrowUp" || (ev.key === "Enter" && ev.shiftKey) ? td.parentElement.previousElementSibling : td.parentElement.nextElementSibling;
+    const nx = tr && tr.children[td.cellIndex];
+    if (nx) { nx.focus(); const s = getSelection(); s.selectAllChildren(nx); }
+  } else if (ev.key === "Escape") td.blur();
+});
+$("pegrid").addEventListener("focusin", (ev) => {
+  const td = ev.target.closest("td[data-k]"); if (!td) return;
+  const r = PE.visible[+td.parentElement.dataset.i];
+  if (PE.hot !== r) { PE.hot?.tr?.classList.remove("hot"); PE.hot = r; td.parentElement.classList.add("hot"); peRenderMap(); }
+});
+$("pegrid").addEventListener("paste", (ev) => {
+  const td = ev.target.closest("td[data-k]"); if (!td) return;
+  ev.preventDefault();
+  let text = (ev.clipboardData || window.clipboardData).getData("text/plain").replace(/\r/g, "");
+  if (text.endsWith("\n")) text = text.slice(0, -1);
+  const grid = text.split("\n").map((l) => l.split("\t"));
+  const i0 = +td.parentElement.dataset.i, c0 = PE.cols.findIndex((c) => c.k === td.dataset.k);
+  if (grid.length === 1 && grid[0].length === 1) { document.execCommand("insertText", false, grid[0][0]); return; }
+  grid.forEach((line, di) => line.forEach((v, dj) => {
+    const r = PE.visible[i0 + di], c = PE.cols[c0 + dj]; if (!r || !c) return;
+    peWrite(r, c.k, v.trim());
+  }));
+  peRenderTable();
+});
+
+function peRenderTools() {
+  const fs = $("pebfield"); fs.innerHTML = "";
+  for (const c of PE.cols) { const o = document.createElement("option"); o.value = c.k; o.textContent = c.label; fs.append(o); }
+  const ts = $("petpl"); ts.innerHTML = "";
+  const sch = peSchemas(), ids = new Set();
+  for (const [id, s] of Object.entries(sch)) { ids.add(id); const o = document.createElement("option"); o.value = "s:" + id; o.textContent = s.name + " (dari file)"; ts.append(o); }
+  PE_TPL.forEach((t, i) => { if (ids.has(t.id)) return; const o = document.createElement("option"); o.value = "t:" + i; o.textContent = t.label; ts.append(o); });
+  // preselect a template that matches the folder name
+  const nm = PE.cur.name.toUpperCase();
+  const guess = [...ts.options].find((o) => { const t = o.textContent.toUpperCase(); return (nm.includes("POLE") && t.startsWith("POLE")) || (nm.includes("FAT") && t.startsWith("FAT")) || (nm.includes("FDT") && t.startsWith("FDT")) || (nm.includes("CABLE") && /LINE/.test(t)); });
+  if (PE.cur.schema && sch[PE.cur.schema]) ts.value = "s:" + PE.cur.schema; else if (guess) ts.value = guess.value;
+}
+
+$("pebgo").onclick = () => {
+  const k = $("pebfield").value, v = $("pebval").value; if (!k || !PE.cur) return;
+  for (const r of peTargets()) {
+    const c = r.coords[0] && r.coords[0][0];
+    peWrite(r, k, v.replace(/\{nama\}/gi, peGet(r, "__name") || "").replace(/\{lat\}/gi, c ? c[1].toFixed(6) : "").replace(/\{lon\}/gi, c ? c[0].toFixed(6) : ""));
+  }
+  peRenderTable();
+};
+$("petplgo").onclick = () => {
+  const v = $("petpl").value; if (!v || !PE.cur) return;
+  let id, fields;
+  if (v.startsWith("s:")) { id = v.slice(2); fields = peSchemas()[id].fields.map((x) => x.name); }
+  else { const t = PE_TPL[+v.slice(2)]; id = peEnsureSchema(t); fields = t.f.map((x) => x[0]); }
+  for (const r of peTargets()) {
+    peSchemaData(r.el, id);
+    for (const f of fields) if (peFieldEl(r.el, f) == null) peCreate(r.el, f, id);
+  }
+  PE.cur.schema = PE.cur.schema || id;
+  peBuildCols(); peRenderTable(); peRenderTools(); peSummary();
+};
+$("pecoladd").onclick = () => {
+  const n = $("pecolname").value.trim().replace(/\s+/g, "_"); if (!n || !PE.cur) return;
+  if (!PE.cols.some((c) => c.k === n)) PE.cols.push({ k: n, label: n });
+  for (const r of peTargets()) if (peFieldEl(r.el, n) == null) peCreate(r.el, n, PE.cur.schema);
+  $("pecolname").value = ""; peBuildCols(); peRenderTable(); peRenderTools();
+};
+$("pecoord").onclick = () => {
+  if (!PE.cur) return;
+  const lat = PE.cols.find((c) => /lat/i.test(c.k)), lon = PE.cols.find((c) => /lon|long|lng/i.test(c.k));
+  if (!lat || !lon) { $("pecount").textContent = "Tidak ada kolom Lat/Long di folder ini. Pasang template dulu."; return; }
+  for (const r of peTargets()) { if (r.geom !== "Point" || !r.coords[0]) continue; const [x, y] = r.coords[0][0]; peWrite(r, lat.k, y.toFixed(6)); peWrite(r, lon.k, x.toFixed(6)); }
+  peRenderTable();
+};
+$("pefilter").oninput = () => { peRenderTable(); peRenderMap(); };
+$("pecopy").onclick = async () => {
+  const rows = peRows(), head = ["Posisi", ...PE.cols.map((c) => c.label)];
+  const tsv = [head, ...rows.map((r) => [pePos(r), ...PE.cols.map((c) => (peGet(r, c.k) ?? "").replace(/[\t\n]/g, " "))])].map((l) => l.join("\t")).join("\n");
+  let ok = false;
+  try { await navigator.clipboard.writeText(tsv); ok = true; } catch (e) {
+    const ta = document.createElement("textarea"); ta.value = tsv; document.body.append(ta); ta.select(); try { ok = document.execCommand("copy"); } catch (e2) {} ta.remove();
+  }
+  $("pecount").textContent = ok ? `${rows.length} baris disalin. Tempel di Excel, edit, lalu salin balik dan tempel di sel pertama.` : "Gagal menyalin di browser ini.";
+};
+
+// ---- mini map ----
+function peRenderMap(fit) {
+  const svg = $("pemap"); if (!PE.doc) return;
+  const pts = PE.all.flatMap((r) => r.coords.flat());
+  if (!pts.length) { svg.innerHTML = ""; return; }
+  const lat0 = pts.reduce((a, p) => a + p[1], 0) / pts.length, kx = Math.cos(lat0 * Math.PI / 180);
+  const P = (p) => [(p[0]) * kx * 111320, -p[1] * 110540];
+  if (fit || !PE.view) {
+    const src = PE.cur.pms.flatMap((r) => r.coords.flat()); const use = (src.length ? src : pts).map(P);
+    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const [x, y] of use) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    const w = Math.max(x1 - x0, 40), h = Math.max(y1 - y0, 40), m = 0.08;
+    PE.view = [x0 - w * m - (w < 40 ? 20 : 0), y0 - h * m - (h < 40 ? 20 : 0), w * (1 + 2 * m), h * (1 + 2 * m)];
+  }
+  const [vx, vy, vw, vh] = PE.view; svg.setAttribute("viewBox", `${vx} ${vy} ${vw} ${vh}`);
+  const rect = svg.getBoundingClientRect();
+  const u = Math.max(vw / (rect.width || 360), vh / (rect.height || 420));
+  const cur = new Set(PE.cur.pms), vis = new Set(PE.visible || []);
+  let lines = "", dots = "", hot = "";
+  for (const r of PE.all) {
+    const on = cur.has(r) && vis.has(r), sel = on && PE.sel.has(r);
+    const col = sel ? "var(--dxf-orange)" : on ? "var(--accent)" : "var(--dxf-road)";
+    for (const seg of r.coords) {
+      if (r.geom === "Point" || seg.length === 1) {
+        const [x, y] = P(seg[0]);
+        dots += `<circle cx="${x}" cy="${y}" r="${(on ? 3.4 : 1.8) * u}" fill="${col}"${on ? ` data-i="${PE.visible.indexOf(r)}"` : ""} opacity="${on ? 1 : .55}"/>`;
+      } else {
+        lines += `<polyline points="${seg.map(P).map((p) => p.join(",")).join(" ")}" fill="none" stroke="${col}" stroke-width="${(on ? 2.2 : 1) * u}" opacity="${on ? .95 : .45}"${on ? ` data-i="${PE.visible.indexOf(r)}"` : ""}/>`;
+      }
+    }
+    if (r === PE.hot && r.coords[0]) { const [x, y] = P(r.coords[0][0]); hot = `<circle cx="${x}" cy="${y}" r="${8 * u}" fill="none" stroke="var(--dxf-orange)" stroke-width="${2 * u}"/>`; }
+  }
+  let labels = "";
+  if (PE.cur.pms.length <= 200) for (const r of PE.cur.pms) {
+    if (!vis.has(r) || !r.coords[0]) continue; const p = r.coords[0][Math.floor(r.coords[0].length / 2)], [x, y] = P(p);
+    labels += `<text x="${x + 5 * u}" y="${y - 4 * u}" font-size="${10.5 * u}" fill="var(--fg)" font-family="var(--sans)">${(peGet(r, "__name") || "").replace(/[&<]/g, (c) => c === "&" ? "&amp;" : "&lt;")}</text>`;
+  }
+  svg.innerHTML = `<g>${lines}${dots}${hot}${labels}</g>`;
+}
+(function peMapEvents() {
+  const svg = $("pemap"); let drag = null;
+  svg.addEventListener("wheel", (ev) => {
+    if (!PE.view) return; ev.preventDefault();
+    const r = svg.getBoundingClientRect(), [vx, vy, vw, vh] = PE.view, s = ev.deltaY > 0 ? 1.2 : 1 / 1.2;
+    const fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height;
+    PE.view = [vx + vw * fx * (1 - s), vy + vh * fy * (1 - s), vw * s, vh * s]; peRenderMap();
+  }, { passive: false });
+  svg.addEventListener("pointerdown", (ev) => { if (!PE.view) return; drag = { x: ev.clientX, y: ev.clientY, v: PE.view.slice(), moved: false }; svg.setPointerCapture(ev.pointerId); });
+  svg.addEventListener("pointermove", (ev) => {
+    if (!drag) return; const r = svg.getBoundingClientRect(), u = Math.max(drag.v[2] / r.width, drag.v[3] / r.height);
+    const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) { drag.moved = true; svg.classList.add("drag"); }
+    if (drag.moved) { PE.view = [drag.v[0] - dx * u, drag.v[1] - dy * u, drag.v[2], drag.v[3]]; peRenderMap(); }
+  });
+  svg.addEventListener("pointerup", (ev) => {
+    const d = drag; drag = null; svg.classList.remove("drag"); if (!d || d.moved) return;
+    const hit = document.elementsFromPoint(ev.clientX, ev.clientY).find((e) => e.dataset && e.dataset.i != null && e.closest("#pemap"));
+    if (!hit) return;
+    const r = PE.visible[+hit.dataset.i]; if (!r) return;
+    if (ev.ctrlKey || ev.metaKey || ev.shiftKey) { PE.sel.has(r) ? PE.sel.delete(r) : PE.sel.add(r); peRenderTable(); }
+    PE.hot?.tr?.classList.remove("hot"); PE.hot = r; r.tr?.classList.add("hot");
+    r.tr?.scrollIntoView({ block: "center", behavior: "smooth" }); peRenderMap();
+  });
+})();
+
+// ---- save ----
+async function peBuild() {
+  let xml = new XMLSerializer().serializeToString(PE.doc);
+  if (!/^<\?xml/.test(xml)) xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
+  const data = new TextEncoder().encode(xml);
+  const files = PE.others.map((f) => f.name === PE.file.kml ? { name: f.name, data } : f);
+  return peZip(files);
+}
+const peOutName = () => PE.file.name.replace(/\.(kmz|kml)$/i, "") + ".kmz";
+let peUrl = null;
+function peRenderDl() {
+  const box = $("pedl"); box.innerHTML = "";
+  const b = document.createElement("button"); b.type = "button"; b.className = "primary"; b.textContent = "Download KMZ"; box.append(b);
+  const note = document.createElement("span"); note.className = "note"; note.id = "pedlnote";
+  note.textContent = "Isi popup yang diedit; style, icon, dan folder tetap seperti file asli."; box.append(note);
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const kmz = await peBuild(), name = peOutName();
+      if (PE_MODE === "github") {
+        if (peUrl) URL.revokeObjectURL(peUrl);
+        peUrl = URL.createObjectURL(new Blob([kmz], { type: "application/vnd.google-earth.kmz" }));
+        const a = document.createElement("a"); a.href = peUrl; a.download = name; document.body.append(a); a.click(); a.remove();
+        note.textContent = "Tersimpan: " + name;
+      } else {
+        const d = await dlReady;
+        if (!d) { note.textContent = "Download hanya tersedia saat halaman dibuka di claude.ai."; return; }
+        try { await d.save({ filename: name, data: new Blob([kmz], { type: "application/vnd.google-earth.kmz" }) }); note.textContent = "Tersimpan: " + name; }
+        catch (e) {
+          const code = e && e.code;
+          if (code === "declined") { note.textContent = "Download dibatalkan."; return; }
+          if (code === "rate_limited") { note.textContent = "Masih ada konfirmasi download yang terbuka."; return; }
+          const z = await peZip([{ name, data: kmz }]), zn = name.replace(/\.kmz$/i, "") + ".zip";
+          await d.save({ filename: zn, data: new Blob([z]) });
+          note.textContent = "Tersimpan sebagai " + zn + " (KMZ ada di dalamnya).";
+        }
+      }
+    } catch (e) { note.textContent = "Gagal menyimpan: " + e.message; }
+    finally { b.disabled = false; }
+  };
+}
+
+// ---- file input ----
+function peLoad(file) {
+  if (!file) return;
+  $("pefname").textContent = file.name;
+  peOpen(file).catch((e) => { const s = $("pesummary"); s.innerHTML = ""; s.append(pill("Error: " + e.message, "err")); $("pework").hidden = true; });
+}
+$("pefile").onchange = () => peLoad($("pefile").files[0]);
+(function () {
+  const d = $("pedrop");
+  ["dragenter", "dragover"].forEach((t) => d.addEventListener(t, (e) => { e.preventDefault(); d.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => d.addEventListener(t, (e) => { e.preventDefault(); d.classList.remove("over"); }));
+  d.addEventListener("drop", (e) => peLoad(e.dataTransfer.files[0]));
+})();
+addEventListener("beforeunload", (e) => { if (PE.edits) { e.preventDefault(); e.returnValue = ""; } });
+
 </script>
 </body>
 </html>
