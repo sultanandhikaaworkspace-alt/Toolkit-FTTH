@@ -159,7 +159,7 @@ a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pe-map .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .pe-count { font-size: 12.5px; color: var(--muted); }
 .pe-pop { position: absolute; z-index: 3; width: 270px; max-width: calc(100% - 8px); background: #fff; color: #111; border-radius: 2px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.35); padding: 22px 14px 12px; font: 12px/1.35 Arial, Helvetica, sans-serif; }
+  box-shadow: 0 2px 10px rgba(0,0,0,.35); padding: 20px 16px 12px; font: 12px/1.35 Arial, Helvetica, sans-serif; }
 .pe-pop::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -10px; margin-left: -10px; border: 10px solid transparent; border-bottom: 0; border-top-color: #fff; }
 .pe-pop.below::after { bottom: auto; top: -10px; border-top: 0; border-bottom: 10px solid #fff; }
 .pe-pop.off { opacity: .35; }
@@ -223,6 +223,9 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
 .pe-ddmenu .opt:hover, .pe-ddmenu .opt.on { background: var(--accent-soft); color: var(--fg); }
 .pe-grid td.act:has(.pe-dd) { padding-right: 26px; }
 .pe-pop th { text-transform: none; letter-spacing: 0; }
+.pe-pop { width: auto; min-width: 220px; max-width: min(380px, calc(100% - 8px)); }
+.pe-pop th { white-space: nowrap; width: 1%; padding-right: 14px; }
+.pe-pop td.chg { background: transparent; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -453,7 +456,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
         <div class="grp">
           <b>Isi massal</b>
           <label class="f">Kolom <select id="pebfield"></select></label>
-          <label class="f">Nilai <input type="text" id="pebval" autocomplete="off" placeholder="mis. LN (EXISTING) atau {nama}" title="{nama} = nama titik, {lat} / {lon} = koordinat"></label>
+          <label class="f">Nilai <input type="text" id="pebval" autocomplete="off" placeholder="mis. LINKNET (EXISTING) atau {nama}" title="{nama} = nama titik, {lat} / {lon} = koordinat"></label>
           <button type="button" class="sec" id="pebgo">Isi</button>
         </div>
         <div class="grp">
@@ -1349,11 +1352,14 @@ function peAutoTpl(f) {
     const c = r.geom === "Point" && r.coords[0] && r.coords[0][0];
     const set = (k, v) => { r.orig[k] = ""; peSet(r, k, v); };
     if (c) { set("Coordinate__Lat__NEW", c[1].toFixed(6)); set("Coordinate__Long__NEW", c[0].toFixed(6)); }
-    const nm0 = (peGet(r, "__name") || "").trim();
+    const nm0 = (peGet(r, "__name") || "").replace(/[\u200b-\u200f\ufeff]/g, "").trim();
     const pid = [label, nm0].find((x) => /^\d+[A-Z]{0,2}\*?$/i.test(x));      // only a real pole ID (1A, 31B, 4P)
     if (pid) {
-      set("Pole_ID__New_", pid);
+      set("Pole_ID__New_", pid); set("__name", pid);
       const d = pePoleFromId(pid, ""); if (d) { set("Pole_Provider__New_", d.prov); set("Pole_Type", d.type); }
+    } else {                                                                  // name says the provider: LN, XL, PLN, ALITA …
+      const L = (PE_PROV_LETTER.find(([re]) => re.test(nm0)) || [])[1];
+      if (L && nm0.length <= 12) { set("Pole_Provider__New_", PE_LETTER_PROV[L]); set("Pole_Type", peTypeFor(L, "")); }
     }
   }
   for (const k of dropped) for (const sc of Object.values(peSchemas())) {   // schema fields nobody uses any more
@@ -1434,7 +1440,7 @@ function peRenderMap(fit) {
   let labels = "";
   if (PE.cur.pms.length <= 200) for (const r of PE.cur.pms) {
     if (!vis.has(r) || !r.coords[0]) continue; const p = r.coords[0][Math.floor(r.coords[0].length / 2)], [x, y] = P(p);
-    labels += `<text x="${x + 5 * u}" y="${y - 4 * u}" font-size="${10.5 * u}" fill="var(--fg)" font-family="var(--sans)">${(peGet(r, "__name") || "").replace(/[&<]/g, (c) => c === "&" ? "&amp;" : "&lt;")}</text>`;
+    labels += `<text x="${x + 5 * u}" y="${y - 4 * u}" font-size="${10.5 * u}" fill="var(--fg)" font-family="var(--sans)">${(peGet(r, "Pole_ID__New_") || peGet(r, "__name") || "").replace(/[&<]/g, (c) => c === "&" ? "&amp;" : "&lt;")}</text>`;
   }
   svg.innerHTML = `<g>${lines}${dots}${hot}${labels}</g>`;
   PE.P = P; pePlacePop();
@@ -1537,7 +1543,6 @@ function peRenderPop() {
   }).join("");
   const c = r.coords[0] && r.coords[0][0];
   box.innerHTML = `<button type="button" class="x" aria-label="Tutup">×</button>
-    <div class="ttl" contenteditable="true" spellcheck="false" data-k="__name">${peEsc(peGet(r, "__name"))}</div>
     <table>${rows || '<tr><td class="none">Belum ada popup.</td></tr>'}</table>`;
   box.hidden = false;
   pePlacePop();
@@ -1719,7 +1724,7 @@ $("peroute").onclick = () => {
 };
 
 // ---- Pole ID letter ⇄ provider ⇄ pole type: 1A = LN → POLE 7/250, 31B = Alita → "-" ----
-const PE_LETTER_PROV = { A: "LN (EXISTING)", B: "ALITA (EXISTING)", C: "FMI (EXISTING)", D: "MYREP (EXISTING)", E: "MTI (EXISTING)", G: "XL (EXISTING)", P: "PLN (EXISTING)" };
+const PE_LETTER_PROV = { A: "LINKNET (EXISTING)", B: "ALITA (EXISTING)", C: "FMI (EXISTING)", D: "MYREP (EXISTING)", E: "MTI (EXISTING)", G: "XL (EXISTING)", P: "PLN (EXISTING)" };
 const peTypeFor = (letter, curType) => letter === "A" ? (!curType || curType.trim() === "-" ? "POLE 7/250" : curType) : "-";
 function pePoleFromId(id, curType) {
   const m = String(id || "").trim().match(/^(\d+)([A-Z])\*?$/i); if (!m) return null;
@@ -1730,7 +1735,11 @@ function peLinkPole(r, k, val) {
   const key = (re) => PE.cols.find((c) => re.test(c.k))?.k;
   const idk = key(/pole.?id/i), pk = key(/provider/i), tk = key(/pole.?type/i);
   if (!idk || !pk) return;
-  if (k === idk) {                                   // typed 1A → LN (EXISTING) + POLE 7/250
+  if (k === idk) {                                   // typed 1A → LINKNET (EXISTING) + POLE 7/250
+    if (/^\s*\d+\s*$/.test(val || "")) {          // only a number typed: add the provider's letter (3 → 3A for LINKNET)
+      const L = (PE_PROV_LETTER.find(([re]) => re.test(peGet(r, pk) || "")) || [])[1];
+      if (L) { peWrite(r, idk, String(val).trim() + L); return; }
+    }
     const d = pePoleFromId(val, tk ? peGet(r, tk) : "");
     if (!d) return;
     if ((peGet(r, pk) || "") !== d.prov) peWrite(r, pk, d.prov);
@@ -1754,8 +1763,16 @@ function peAutoNumber(f) {
   const res = peRouteOrder(f.pms);
   let n = 0;
   if (res.err) {                                       // no OLT / AGG or cable: LN defaults only
-    pgTx(() => { for (const r of blank) { if (pk && !peGet(r, pk)) peWrite(r, pk, "LN (EXISTING)"); if (tk && !peGet(r, tk)) peWrite(r, tk, "POLE 7/250"); } });
+    pgTx(() => { for (const r of blank) { if (pk && !peGet(r, pk)) peWrite(r, pk, "LINKNET (EXISTING)"); if (tk && !peGet(r, tk)) peWrite(r, tk, "POLE 7/250"); } });
     return `Pole ID belum diisi (tidak ada OLT/AGG + kabel untuk urutan); Provider LN dan POLE 7/250 diisi untuk ${blank.length} tiang.`;
+  }
+  // the IDs already typed show the direction: if they count down along the cable (1A at the FDT end), number from that end
+  const tagged = res.order.map((r, i) => [i, parseInt(peGet(r, idk), 10)]).filter(([i]) => hasId(res.order[i]));
+  let flipped = false;
+  if (tagged.length >= 2) {
+    let up = 0, down = 0;
+    for (let a = 1; a < tagged.length; a++) { if (tagged[a][1] > tagged[a - 1][1]) up++; else if (tagged[a][1] < tagged[a - 1][1]) down++; }
+    if (down > up) { res.order.reverse(); flipped = true; }
   }
   // put the folder in cable order (KML too)
   const first = f.pms.map((r) => r.el).find((el) => el.parentNode === f.el);
@@ -1775,7 +1792,7 @@ function peAutoNumber(f) {
       n++;
     }
   });
-  return `Diurutkan dari ${res.start} mengikuti kabel; ${n} tiang dinomori otomatis` + (f.pms.length - n ? `, ${f.pms.length - n} ID yang sudah ada dipertahankan.` : ".");
+  return `Diurutkan ${flipped ? "dari ujung akhir kabel (mengikuti 1A yang sudah ada)" : "dari " + res.start} mengikuti kabel; ${n} tiang dinomori otomatis` + (f.pms.length - n ? `, ${f.pms.length - n} ID yang sudah ada dipertahankan.` : ".");
 }
 
 // ---- spreadsheet grid (Excel-like): select with mouse/keys, type to edit, copy/paste blocks, fill handle, undo ----
@@ -2087,7 +2104,7 @@ $("peredo").onclick = () => pgUndo(true);
 // ---- pick lists (like Excel data validation): Pole Type ----
 const PE_LISTS = [
   { test: /pole.?type/i, opts: ["POLE 7/250", "POLE 7/200", "POLE 8/200", "-"] },
-  { test: /provider/i, opts: ["LN (EXISTING)", "ALITA (EXISTING)", "FMI (EXISTING)", "MYREP (EXISTING)", "MTI (EXISTING)", "XL (EXISTING)", "PLN (EXISTING)"] },
+  { test: /provider/i, opts: ["LINKNET (EXISTING)", "ALITA (EXISTING)", "FMI (EXISTING)", "MYREP (EXISTING)", "MTI (EXISTING)", "XL (EXISTING)", "PLN (EXISTING)"] },
 ];
 function pgListFor(k) { if (!k || k[0] === "_") return null; const l = PE_LISTS.find((x) => x.test.test(k)); return l ? l.opts : null; }
 function pgOpenList() {
