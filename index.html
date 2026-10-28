@@ -1287,6 +1287,7 @@ function peWrite(r, k, val, td) {
   const changed = r.orig[k] !== val;
   if (td) td.classList.toggle("chg", changed);
   peSyncCell(r, k, val, td);
+  if (!PE.noLink && !PE.linking) { PE.linking = true; try { peLinkPole(r, k, val); } finally { PE.linking = false; } }
   PE.edits = PE.all.reduce((n, x) => n + Object.keys(x.orig).filter((kk) => x.orig[kk] !== (peGet(x, kk) ?? "")).length, 0);
   clearTimeout(PE.st); PE.st = setTimeout(() => { peSummary(); if (k === "__name") peRenderMap(); }, 200);
 }
@@ -1332,7 +1333,10 @@ function peAutoTpl(f) {
     const set = (k, v) => { r.orig[k] = ""; peSet(r, k, v); };
     if (c) { if (fields.includes("Coordinate__Lat__NEW")) set("Coordinate__Lat__NEW", c[1].toFixed(6)); if (fields.includes("Coordinate__Long__NEW")) set("Coordinate__Long__NEW", c[0].toFixed(6)); }
     const nm0 = (peGet(r, "__name") || "").trim();
-    if (t === PE_TPL[0] && /^\d+[A-Z]{0,2}\*?$/i.test(nm0)) set("Pole_ID__New_", nm0);     // only when the name already is a pole ID (1A, 31B)
+    if (t === PE_TPL[0] && /^\d+[A-Z]{0,2}\*?$/i.test(nm0)) {     // only when the name already is a pole ID (1A, 31B)
+      set("Pole_ID__New_", nm0);
+      const d = pePoleFromId(nm0, ""); if (d) { set("Pole_Provider__New_", d.prov); set("Pole_Type", d.type); }
+    }
     if (t === PE_TPL[1] || t === PE_TPL[2]) {
       set("FAT_ID_NETWORK_ID", peGet(r, "__name") || "");
       const p = c && pePoleAt(c);                 // FAT / FDT sits on a pole: take that pole's ID and position
@@ -1703,6 +1707,31 @@ $("peroute").onclick = () => {
   $("pecount").textContent = `Diurutkan dari ${res.start} mengikuti ${res.lines} garis kabel` + (res.off ? ` (${res.off} titik jauh dari kabel ditaruh di akhir)` : "") + (n ? `, Pole ID 1… ${n} diisi.` : ".");
 };
 
+// ---- Pole ID letter ⇄ provider ⇄ pole type: 1A = LN → POLE 7/250, 31B = Alita → "-" ----
+const PE_LETTER_PROV = { A: "LN (EXISTING)", B: "ALITA (EXISTING)", C: "FMI (EXISTING)", D: "MYREP (EXISTING)", E: "MTI (EXISTING)", G: "XL (EXISTING)", P: "PLN (EXISTING)" };
+const peTypeFor = (letter, curType) => letter === "A" ? (!curType || curType.trim() === "-" ? "POLE 7/250" : curType) : "-";
+function pePoleFromId(id, curType) {
+  const m = String(id || "").trim().match(/^(\d+)([A-Z])\*?$/i); if (!m) return null;
+  const L = m[2].toUpperCase(); if (!PE_LETTER_PROV[L]) return null;
+  return { prov: PE_LETTER_PROV[L], type: peTypeFor(L, curType) };
+}
+function peLinkPole(r, k, val) {
+  const key = (re) => PE.cols.find((c) => re.test(c.k))?.k;
+  const idk = key(/pole.?id/i), pk = key(/provider/i), tk = key(/pole.?type/i);
+  if (!idk || !pk) return;
+  if (k === idk) {                                   // typed 1A → LN (EXISTING) + POLE 7/250
+    const d = pePoleFromId(val, tk ? peGet(r, tk) : "");
+    if (!d) return;
+    if ((peGet(r, pk) || "") !== d.prov) peWrite(r, pk, d.prov);
+    if (tk && (peGet(r, tk) || "") !== d.type) peWrite(r, tk, d.type);
+  } else if (k === pk) {                             // picked a provider → Pole ID letter + pole type follow
+    const L = (PE_PROV_LETTER.find(([re]) => re.test(val || "")) || [])[1]; if (!L) return;
+    const id = peGet(r, idk) || "", m = id.trim().match(/^(\d+)([A-Z]?)(\*?)$/i);
+    if (m && (m[2] || "").toUpperCase() !== L) peWrite(r, idk, m[1] + L + m[3]);
+    if (tk) { const t = peTypeFor(L, peGet(r, tk) || ""); if ((peGet(r, tk) || "") !== t) peWrite(r, tk, t); }
+  }
+}
+
 // ---- spreadsheet grid (Excel-like): select with mouse/keys, type to edit, copy/paste blocks, fill handle, undo ----
 // Selection: anchor (ar, ac) and focus (fr, fc) in [row index into PE.visible, column index into PE.cols].
 const G = { ar: 0, ac: 0, fr: 0, fc: 0, drag: null, edit: null, painted: [], cells: [] };
@@ -1719,8 +1748,8 @@ function pgTx(fn) {                       // group writes into one undo step
 function pgUndo(redo) {
   const from = redo ? PE.redo : PE.undo, to = redo ? PE.undo : PE.redo;
   const b = from.pop(); if (!b) return;
-  const save = PE.batch; PE.batch = null;
-  for (const w of (redo ? b : [...b].reverse())) peWrite(w.r, w.k, redo ? w.val : w.before);
+  const save = PE.batch; PE.batch = null; PE.noLink = true;
+  try { for (const w of (redo ? b : [...b].reverse())) peWrite(w.r, w.k, redo ? w.val : w.before); } finally { PE.noLink = false; }
   PE.batch = save; to.push(b);
   pgRefresh(); peFxShow();
 }
