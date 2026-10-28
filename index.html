@@ -222,6 +222,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
 .pe-ddmenu .opt { padding: 5px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
 .pe-ddmenu .opt:hover, .pe-ddmenu .opt.on { background: var(--accent-soft); color: var(--fg); }
 .pe-grid td.act:has(.pe-dd) { padding-right: 26px; }
+.pe-pop th { text-transform: none; letter-spacing: 0; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -480,7 +481,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <div class="pe-findres" id="pefindres"></div>
         </div>
       </div>
-      <p class="hint">Seperti Excel: klik / tarik untuk memilih sel, langsung ketik untuk mengisi, F2 atau klik dua kali untuk edit, Delete untuk mengosongkan, Ctrl+C / Ctrl+V untuk salin-tempel (juga dari Excel), tarik kotak kecil di pojok sel untuk mengisi ke bawah (1A → 2A → 3A), Ctrl+D isi ke bawah, Ctrl+Z undo. Klik ↕ di judul kolom untuk mengurutkan. Kolom Pole Type dan Pole Provider punya daftar pilihan (klik ▾ atau Alt+↓). Isi massal, Lat/Long, dan ganti berlaku untuk baris yang dicentang; kalau tidak ada yang dicentang, untuk semua baris yang tampil. Folder POLE yang belum punya popup langsung dibuatkan popup tiang format ABD. <span class="pe-count" id="pecount"></span></p>
+      <p class="hint">Seperti Excel: ketik langsung, F2 edit, Ctrl+C/V, tarik pojok sel untuk isi ke bawah, Ctrl+Z undo. <span class="pe-count" id="pecount"></span></p>
       <div class="pe-body">
         <div class="pe-sheet">
           <div class="pe-fx">
@@ -1323,33 +1324,42 @@ function peAutoTpl(f) {
   const nm = (f.name || "").toUpperCase();
   const t = /POLE|TIANG/.test(nm) ? PE_TPL[0] : null;      // only POLE gets an automatic popup
   if (!t) return 0;
-  const bare = f.pms.filter((r) => !peKid(r.el, "ExtendedData"));
-  if (!bare.length) return 0;
+  // poles without the ABD pole popup (no popup at all, or only a stray label field such as "text")
+  const todo = f.pms.filter((r) => peFieldEl(r.el, "Pole_ID__New_") == null);
+  if (!todo.length) return 0;
   const id = peEnsureSchema(t), fields = t.f.map((x) => x[0]);
-  for (const r of bare) {
+  const labelKey = (r) => { const ed = peKid(r.el, "ExtendedData"); if (!ed) return null;
+    const names = [...peKids(ed, "SchemaData").flatMap((sd) => peKids(sd, "SimpleData")), ...peKids(ed, "Data")].map((x) => x.getAttribute("name"));
+    return names.find((n) => /^(text|label|pole_?id|id)$/i.test(n)) || null; };
+  const dropped = new Set();
+  for (const r of todo) {
+    // a label field (e.g. "text" = 4P, 1A) becomes the Pole ID, then the field is removed
+    const lk = labelKey(r); let label = "";
+    if (lk) {
+      const el = peFieldEl(r.el, lk); label = (el?.textContent || "").trim();
+      (el.localName === "value" ? el.parentElement : el).remove(); dropped.add(lk);
+      const ed = peKid(r.el, "ExtendedData");
+      for (const sd of peKids(ed, "SchemaData")) if (!peKids(sd, "SimpleData").length) sd.remove();
+      if (ed && !ed.children.length) ed.remove();
+    }
     peSchemaData(r.el, id);
     for (const k of fields) if (peFieldEl(r.el, k) == null) peCreate(r.el, k, id);
     const c = r.geom === "Point" && r.coords[0] && r.coords[0][0];
     const set = (k, v) => { r.orig[k] = ""; peSet(r, k, v); };
-    if (c) { if (fields.includes("Coordinate__Lat__NEW")) set("Coordinate__Lat__NEW", c[1].toFixed(6)); if (fields.includes("Coordinate__Long__NEW")) set("Coordinate__Long__NEW", c[0].toFixed(6)); }
+    if (c) { set("Coordinate__Lat__NEW", c[1].toFixed(6)); set("Coordinate__Long__NEW", c[0].toFixed(6)); }
     const nm0 = (peGet(r, "__name") || "").trim();
-    if (t === PE_TPL[0] && /^\d+[A-Z]{0,2}\*?$/i.test(nm0)) {     // only when the name already is a pole ID (1A, 31B)
-      set("Pole_ID__New_", nm0);
-      const d = pePoleFromId(nm0, ""); if (d) { set("Pole_Provider__New_", d.prov); set("Pole_Type", d.type); }
+    const pid = [label, nm0].find((x) => /^\d+[A-Z]{0,2}\*?$/i.test(x));      // only a real pole ID (1A, 31B, 4P)
+    if (pid) {
+      set("Pole_ID__New_", pid);
+      const d = pePoleFromId(pid, ""); if (d) { set("Pole_Provider__New_", d.prov); set("Pole_Type", d.type); }
     }
-    if (t === PE_TPL[1] || t === PE_TPL[2]) {
-      set("FAT_ID_NETWORK_ID", peGet(r, "__name") || "");
-      const p = c && pePoleAt(c);                 // FAT / FDT sits on a pole: take that pole's ID and position
-      if (p) {
-        set("Pole_ID__New_", peGet(p, "Pole_ID__New_") || peGet(p, "__name") || "");
-        const pc = p.coords[0][0]; set("Coordinate__Lat__NEW", pc[1].toFixed(6)); set("Coordinate__Long__NEW", pc[0].toFixed(6));
-        for (const k of ["Pole_Provider__New_", "Pole_Type"]) { const v = peGet(p, k); if (v) set(k, v); }
-      }
-    }
-    if (t === PE_TPL[3]) set("LINE", peGet(r, "__name") || "");
   }
-  f.schema = f.schema || id; PE.dirty = true;
-  return bare.length;
+  for (const k of dropped) for (const sc of Object.values(peSchemas())) {   // schema fields nobody uses any more
+    const used = PE.all.some((r) => peFieldEl(r.el, k) != null);
+    if (!used) peKids(sc.el, "SimpleField").filter((x) => x.getAttribute("name") === k).forEach((x) => x.remove());
+  }
+  f.schema = id; PE.dirty = true;
+  return todo.length;
 }
 $("pecoladd").onclick = () => {
   const n = $("pecolname").value.trim().replace(/\s+/g, "_"); if (!n || !PE.cur) return;
@@ -1526,8 +1536,7 @@ function peRenderPop() {
   const c = r.coords[0] && r.coords[0][0];
   box.innerHTML = `<button type="button" class="x" aria-label="Tutup">×</button>
     <div class="ttl" contenteditable="true" spellcheck="false" data-k="__name">${peEsc(peGet(r, "__name"))}</div>
-    <table>${rows || '<tr><td class="none">Belum ada popup. Pasang template dulu.</td></tr>'}
-    ${r.geom === "Point" && c ? `<tr class="geo"><th>LATITUDE</th><td>${c[1].toFixed(6)}</td></tr><tr class="geo"><th>LONGITUDE</th><td>${c[0].toFixed(6)}</td></tr>` : ""}</table>`;
+    <table>${rows || '<tr><td class="none">Belum ada popup.</td></tr>'}</table>`;
   box.hidden = false;
   pePlacePop();
 }
@@ -1784,7 +1793,6 @@ function peRenderTable() {
     const sb = document.createElement("button"); sb.type = "button"; sb.className = "sort"; sb.dataset.sort = c.k;
     sb.textContent = PE.sort && PE.sort.k === c.k ? (PE.sort.dir > 0 ? "▲" : "▼") : "↕"; sb.title = "Urutkan";
     top.append(letter, lab, sb); h.append(top);
-    if (c.k[0] !== "_" && c.label !== c.k) { const s = document.createElement("small"); s.textContent = c.k; h.append(s); }
     hr.append(h);
   });
   th.append(hr); t.append(th);
