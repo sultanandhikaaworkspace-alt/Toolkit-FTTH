@@ -1218,8 +1218,10 @@ function peSelectFolder(f) {
   f.schema = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || f.schema || null;
   const auto = peAutoTpl(f);
   $("pework").hidden = false;
-  peRenderFolders(); peBuildCols(); peRenderTools(); peRenderTable(); peRenderMap(true); peRenderFindRes();
-  if (auto) { $("pecount").textContent = `${auto} ${PE.cur.pms[0].geom === "Point" ? "titik" : "garis"} dibuatkan popup ${PE.cur.name} (format ABD), isinya sudah diisi dari nama dan koordinat. Cek lalu lengkapi.`; peSummary(); }
+  peRenderFolders(); peBuildCols();
+  const autoN = auto ? peAutoNumber(f) : null;
+  peRenderTools(); peRenderTable(); peRenderMap(true); peRenderFindRes();
+  if (auto) { $("pecount").textContent = `${auto} titik dibuatkan popup ${PE.cur.name} (format ABD). ` + (autoN || "") + " Cek lalu lengkapi."; peSummary(); }
 }
 
 function peBuildCols() {
@@ -1739,6 +1741,41 @@ function peLinkPole(r, k, val) {
     if (m && (m[2] || "").toUpperCase() !== L) peWrite(r, idk, m[1] + L + m[3]);
     if (tk) { const t = peTypeFor(L, peGet(r, tk) || ""); if ((peGet(r, tk) || "") !== t) peWrite(r, tk, t); }
   }
+}
+
+// ---- new POLE popups: number the poles straight away along the cable (feeder / backbone), keeping IDs that exist ----
+function peAutoNumber(f) {
+  const key = (re) => PE.cols.find((c) => re.test(c.k))?.k;
+  const idk = key(/pole.?id/i), pk = key(/provider/i), tk = key(/pole.?type/i);
+  if (!idk) return "";
+  const hasId = (r) => /^\d+[A-Z]{0,2}\*?$/i.test((peGet(r, idk) || "").trim());
+  const blank = f.pms.filter((r) => !hasId(r));
+  if (!blank.length) return "";
+  const res = peRouteOrder(f.pms);
+  let n = 0;
+  if (res.err) {                                       // no OLT / AGG or cable: LN defaults only
+    pgTx(() => { for (const r of blank) { if (pk && !peGet(r, pk)) peWrite(r, pk, "LN (EXISTING)"); if (tk && !peGet(r, tk)) peWrite(r, tk, "POLE 7/250"); } });
+    return `Pole ID belum diisi (tidak ada OLT/AGG + kabel untuk urutan); Provider LN dan POLE 7/250 diisi untuk ${blank.length} tiang.`;
+  }
+  // put the folder in cable order (KML too)
+  const first = f.pms.map((r) => r.el).find((el) => el.parentNode === f.el);
+  let at = first ? first.previousSibling : null;
+  for (const r of res.order) { f.el.insertBefore(r.el, at ? at.nextSibling : f.el.firstChild); at = r.el; }
+  f.pms.splice(0, f.pms.length, ...res.order);
+  const used = new Set(f.pms.filter(hasId).map((r) => parseInt(peGet(r, idk), 10)));
+  let k = 0;
+  pgTx(() => {
+    for (const r of res.order) {
+      if (hasId(r)) { k = Math.max(k, parseInt(peGet(r, idk), 10)); continue; }
+      do k++; while (used.has(k));
+      used.add(k);
+      const prov = pk ? peGet(r, pk) || "" : "", L = (PE_PROV_LETTER.find(([re]) => re.test(prov)) || [0, "A"])[1];
+      peWrite(r, idk, k + L);                          // provider + pole type follow from the letter
+      peWrite(r, "__name", k + L);
+      n++;
+    }
+  });
+  return `Diurutkan dari ${res.start} mengikuti kabel; ${n} tiang dinomori otomatis` + (f.pms.length - n ? `, ${f.pms.length - n} ID yang sudah ada dipertahankan.` : ".");
 }
 
 // ---- spreadsheet grid (Excel-like): select with mouse/keys, type to edit, copy/paste blocks, fill handle, undo ----
