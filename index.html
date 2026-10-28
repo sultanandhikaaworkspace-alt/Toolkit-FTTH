@@ -226,6 +226,225 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
 .pe-pop { width: auto; min-width: 220px; max-width: min(380px, calc(100% - 8px)); }
 .pe-pop th { white-space: nowrap; width: 1%; padding-right: 14px; }
 .pe-pop td.chg { background: transparent; }
+/* ---- skin "Merah-Biru": comic-hero poster look (red + midnight navy, hand-strung web, halftone), toggle in the header ----
+   Layout: a slanted red/navy hero band carries the breadcrumbs; everything below stays a calm, readable workbench. */
+:root[data-skin="web"] {
+  --bg: #f2f4fa; --panel: #ffffff; --fg: #111a33; --muted: #55607d; --line: #d5dbeb;
+  --accent: #d0102e; --accent-fg: #ffffff; --accent-soft: #fde4e8;
+  --blue: #173a8a; --blue-soft: #e6ecfa; --hero-red: #d0102e; --hero-red2: #9b0b23; --hero-navy: #0f1e4a; --hero-navy2: #08122f;
+  --webc: rgba(23, 58, 138, .13); --dot: rgba(23, 58, 138, .07); --herofg: #ffffff;
+  --display: "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root[data-skin="web"]:not([data-theme="light"]) {
+  --bg: #090f22; --panel: #111a35; --fg: #e9edf8; --muted: #9ba7c6; --line: #26304f;
+  --accent: #ff3a55; --accent-fg: #ffffff; --accent-soft: #3a1422;
+  --blue: #86a8ff; --blue-soft: #18244a; --webc: rgba(255, 58, 85, .12); --dot: rgba(134, 168, 255, .06);
+} }
+:root[data-skin="web"][data-theme="dark"] {
+  --bg: #090f22; --panel: #111a35; --fg: #e9edf8; --muted: #9ba7c6; --line: #26304f;
+  --accent: #ff3a55; --accent-fg: #ffffff; --accent-soft: #3a1422;
+  --blue: #86a8ff; --blue-soft: #18244a; --webc: rgba(255, 58, 85, .12); --dot: rgba(134, 168, 255, .06);
+}
+
+/* ground: halftone dots + strung webs in two corners (web image drawn in theme.js) */
+:root[data-skin="web"] body { background-color: var(--bg); background-image: radial-gradient(var(--dot) 1.1px, transparent 1.4px); background-size: 13px 13px; }
+:root[data-skin="web"] body::before, :root[data-skin="web"] body::after {
+  content: ""; position: fixed; pointer-events: none; z-index: 0; aspect-ratio: 1; max-width: 100%;
+  background: var(--webc); -webkit-mask: var(--webimg) no-repeat top right / contain; mask: var(--webimg) no-repeat top right / contain;
+}
+:root[data-skin="web"] body::before { top: 0; right: 0; width: min(62vw, 640px); }
+:root[data-skin="web"] body::after { bottom: 0; left: 0; width: min(42vw, 420px); transform: scale(-1, -1); }
+:root[data-skin="web"] .wrap { position: relative; z-index: 1; }
+
+/* hero band */
+:root[data-skin="web"] header {
+  position: relative; overflow: hidden; isolation: isolate; border-radius: 14px; padding: 16px 20px; color: var(--herofg);
+  background: linear-gradient(110deg, var(--hero-red) 0%, var(--hero-red2) 52%, var(--hero-navy) 52.2%, var(--hero-navy2) 100%);
+  box-shadow: 0 10px 30px -14px rgba(10, 18, 47, .55);
+}
+:root[data-skin="web"] header::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .22;
+  background: #fff; -webkit-mask: var(--webimg) no-repeat right -40px top -60px / 420px 420px; mask: var(--webimg) no-repeat right -40px top -60px / 420px 420px;
+}
+:root[data-skin="web"] .crumbs { font: 700 20px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+:root[data-skin="web"] .crumbs a, :root[data-skin="web"] .crumbs .sep, :root[data-skin="web"] .crumbs span { color: rgba(255, 255, 255, .78); }
+:root[data-skin="web"] .crumbs [aria-current="page"], :root[data-skin="web"] .crumbs > .sep:only-child { color: #fff; }
+:root[data-skin="web"] .crumbs a:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+:root[data-skin="web"] .status { color: rgba(255, 255, 255, .85); }
+:root[data-skin="web"] .bar { background: rgba(255, 255, 255, .22); }
+:root[data-skin="web"] .bar > i { background: #fff; }
+:root[data-skin="web"] .skinbtn { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .45); color: #fff; backdrop-filter: blur(4px); }
+:root[data-skin="web"] .skinbtn:hover { background: rgba(255, 255, 255, .26); border-color: #fff; }
+
+/* headings */
+:root[data-skin="web"] .ghead h1 { font: 700 clamp(30px, 5vw, 44px)/1 var(--display); letter-spacing: .02em; text-transform: uppercase; position: relative; padding-bottom: 8px; }
+:root[data-skin="web"] .ghead h1::after { content: ""; position: absolute; left: 0; bottom: 0; width: 64px; height: 5px; background: var(--accent); transform: skewX(-24deg); transform-origin: left; }
+:root[data-skin="web"] h2, :root[data-skin="web"] .pe-tools .grp > b { color: var(--blue); }
+
+/* tool cards: clipped corner, red/blue top edge, lift on hover */
+:root[data-skin="web"] .tool { position: relative; border-radius: 4px; clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  background-image: linear-gradient(90deg, var(--accent), var(--blue)); background-size: 100% 4px; background-repeat: no-repeat; background-color: var(--panel);
+  transition: transform .18s ease, box-shadow .18s ease; }
+:root[data-skin="web"] .tool h3 { font: 700 22px/1.05 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+:root[data-skin="web"] a.tool:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -16px var(--accent); border-color: var(--accent); }
+:root[data-skin="web"] .tag.ready { background: var(--blue-soft); color: var(--blue); }
+
+/* controls */
+:root[data-skin="web"] button.primary { background: linear-gradient(135deg, var(--accent), var(--hero-red2)); box-shadow: 0 6px 16px -8px var(--accent); }
+:root[data-skin="web"] .panel { border-top: 3px solid var(--blue); }
+:root[data-skin="web"] .pe-grid thead th, :root[data-skin="web"] .pe-grid th.rn, :root[data-skin="web"] .pe-grid td.rn { background: var(--blue-soft); }
+:root[data-skin="web"] .pe-folders button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+
+.skinbtn { font: 500 12.5px var(--sans); border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.skinbtn:hover { border-color: var(--accent); }
+
+/* the little hanging spider (generic spider, drawn in theme.js) */
+.dropspider { position: fixed; top: 0; right: 30%; width: 30px; z-index: 5; pointer-events: none; display: flex; flex-direction: column; align-items: center; transform-origin: top center;
+  animation: spiderdrop 2.4s cubic-bezier(.25,.9,.35,1) .5s both, spiderbob 3.6s ease-in-out 3s infinite alternate; }
+.dropspider i { width: 1px; height: 64px; background: linear-gradient(var(--muted), var(--fg)); opacity: .55; }
+.dropspider img { width: 26px; height: 26px; margin-top: -3px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+@keyframes spiderdrop { from { transform: translateY(-100px); } to { transform: translateY(0); } }
+@keyframes spiderbob { from { transform: rotate(-4deg); } to { transform: rotate(4deg) translateY(5px); } }
+@media (prefers-reduced-motion: reduce) { .dropspider { animation: none; } :root[data-skin="web"] .tool { transition: none; } }
+@media (max-width: 700px) { .dropspider { right: 14px; } .dropspider i { height: 30px; } :root[data-skin="web"] header { border-radius: 10px; padding: 12px 14px; } }
+
+/* ===== maximal pass ===== */
+:root[data-skin="web"] { --webline: rgba(23, 58, 138, .20); }
+@media (prefers-color-scheme: dark) { :root[data-skin="web"]:not([data-theme="light"]) { --webline: rgba(255, 58, 85, .20); } }
+:root[data-skin="web"][data-theme="dark"] { --webline: rgba(255, 58, 85, .20); }
+/* the strung webs are now live SVG (spun in on load); the old mask layers step aside */
+:root[data-skin="web"] body::before, :root[data-skin="web"] body::after { display: none; }
+.webcorner { position: fixed; z-index: 0; pointer-events: none; width: min(62vw, 660px); max-width: 100%; aspect-ratio: 1; color: var(--webline); }
+.webcorner.tr { top: 0; right: 0; }
+.webcorner.bl { bottom: 0; left: 0; width: min(44vw, 440px); transform: scale(-1, -1); }
+.webcorner svg { width: 100%; height: 100%; display: block; overflow: hidden; }
+.webcorner path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: webspin .9s cubic-bezier(.3,.7,.3,1) forwards; }
+.webcorner path.sp { stroke-width: 1.5; }
+.webcorner path.rg { stroke-width: 1.1; }
+@keyframes webspin { to { stroke-dashoffset: 0; } }
+
+/* hero band: comic speed lines on the red, halftone fade on the navy */
+:root[data-skin="web"] header::before {
+  content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(rgba(255,255,255,.16) 1.2px, transparent 1.6px) right center / 9px 9px,
+    repeating-conic-gradient(from 0deg at 8% 50%, rgba(255,255,255,.10) 0deg 2deg, transparent 2deg 9deg);
+  -webkit-mask: linear-gradient(90deg, #000 0 48%, transparent 52%, #000 70%); mask: linear-gradient(90deg, #000 0 48%, transparent 52%, #000 70%);
+}
+:root[data-skin="web"] .crumbs [aria-current="page"] { text-shadow: 2px 2px 0 rgba(8, 18, 47, .45); }
+:root[data-skin="web"] .bar > i { background: repeating-linear-gradient(-45deg, #fff 0 8px, rgba(255,255,255,.65) 8px 16px); background-size: 22px 22px; animation: barrun 1s linear infinite; }
+@keyframes barrun { to { background-position: 22px 0; } }
+
+/* tool cards: a little web in the clipped corner, staggered entrance from a visible start */
+:root[data-skin="web"] .tool::after { content: ""; position: absolute; top: 0; right: 0; width: 86px; height: 86px; pointer-events: none; opacity: .22;
+  background: var(--accent); -webkit-mask: var(--webimg) no-repeat top right / contain; mask: var(--webimg) no-repeat top right / contain; transition: opacity .2s ease; }
+:root[data-skin="web"] a.tool:hover::after { opacity: .5; }
+:root[data-skin="web"] .tools > .tool { animation: cardin .5s cubic-bezier(.2,.8,.3,1) both; }
+:root[data-skin="web"] .tools > .tool:nth-child(2) { animation-delay: .06s; }
+:root[data-skin="web"] .tools > .tool:nth-child(3) { animation-delay: .12s; }
+:root[data-skin="web"] .tools > .tool:nth-child(4) { animation-delay: .18s; }
+:root[data-skin="web"] .tools > .tool:nth-child(n+5) { animation-delay: .24s; }
+@keyframes cardin { from { opacity: .35; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* details */
+:root[data-skin="web"] ::selection { background: var(--accent); color: var(--accent-fg); }
+:root[data-skin="web"] :focus-visible { outline-color: var(--accent); }
+:root[data-skin="web"] * { scrollbar-color: var(--blue) transparent; }
+:root[data-skin="web"] .pill.warn { box-shadow: inset 0 0 0 1px var(--line); }
+.dropspider img { pointer-events: auto; cursor: pointer; }
+.dropspider.climb { animation: spiderclimb 1.6s cubic-bezier(.4,0,.2,1) both; }
+@keyframes spiderclimb { 0% { transform: none; } 45% { transform: translateY(-110px); } 55% { transform: translateY(-110px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .webcorner path { animation: none; stroke-dashoffset: 0; }
+  :root[data-skin="web"] .tools > .tool, :root[data-skin="web"] .bar > i, .dropspider.climb { animation: none; }
+}
+.webcorner { -webkit-mask: radial-gradient(circle at 100% 0, #000 45%, transparent 99%); mask: radial-gradient(circle at 100% 0, #000 45%, transparent 99%); }
+
+/* ---- original header mark: a "fiber spider" — the body is the OLT, the legs are fiber runs ending at nodes ---- */
+:root[data-skin="web"] .crumbs::before { display: none; }
+.fiberspider { display: none; }
+:root[data-skin="web"] .fiberspider { display: inline-flex; flex: none; width: 46px; height: 46px; margin: -6px 2px -6px -6px; color: #fff; }
+.fiberspider svg { width: 100%; height: 100%; overflow: visible; }
+.fiberspider .leg { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: fsdraw .7s cubic-bezier(.3,.7,.3,1) forwards; }
+.fiberspider .pulse { fill: none; stroke: #9ff0ff; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: .14 .86; stroke-dashoffset: 1; opacity: 0; filter: drop-shadow(0 0 2px #9ff0ff); animation: fspulse 2.2s linear infinite; }
+.fiberspider .node { fill: #fff; transform-box: fill-box; transform-origin: center; animation: fsnode 2.2s ease-in-out infinite; }
+.fiberspider .body { fill: currentColor; }
+.fiberspider .core { fill: #9ff0ff; filter: drop-shadow(0 0 3px #9ff0ff); animation: fscore 2.2s ease-in-out infinite; }
+.fiberspider .wrapin { transform-origin: 32px 32px; animation: fsin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+@keyframes fsdraw { to { stroke-dashoffset: 0; } }
+@keyframes fspulse { 0% { stroke-dashoffset: 1.14; opacity: 1; } 70% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes fsnode { 0%, 60% { transform: scale(1); fill: #fff; } 75% { transform: scale(1.7); fill: #9ff0ff; } 100% { transform: scale(1); fill: #fff; } }
+@keyframes fscore { 0%, 100% { opacity: .55; } 20% { opacity: 1; } }
+@keyframes fsin { from { transform: scale(.4) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+:root[data-skin="web"] header:hover .fiberspider .pulse { animation-duration: 1.1s; }
+:root[data-skin="web"] header:hover .fiberspider .node { animation-duration: 1.1s; }
+@media (prefers-reduced-motion: reduce) {
+  .fiberspider .leg { animation: none; stroke-dashoffset: 0; }
+  .fiberspider .pulse, .fiberspider .node, .fiberspider .core, .fiberspider .wrapin { animation: none; }
+}
+@media (max-width: 700px) { :root[data-skin="web"] .fiberspider { width: 36px; height: 36px; } }
+:root[data-skin="web"] header { justify-content: flex-start; gap: 10px 16px; }
+:root[data-skin="web"] header .crumbs { margin-right: auto; }
+.dropspider { right: 44%; }
+@media (max-width: 700px) { .dropspider { right: 14px; } }
+.dropspider i { height: 104px; }
+@media (max-width: 700px) { .dropspider i { height: 150px; } }
+
+/* header logo is a button that cycles the logo set */
+:root[data-skin="web"] .fiberspider { border: 0; padding: 0; background: none; cursor: pointer; border-radius: 10px; }
+:root[data-skin="web"] .fiberspider:hover { background: rgba(255,255,255,.12); }
+:root[data-skin="web"] .fiberspider:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+:root[data-skin="web"] .crumbs > .sep:only-child { color: #fff !important; }
+
+/* card logos */
+.cardlogo { display: none; }
+:root[data-skin="web"] .cardlogo { display: inline-flex; flex: none; width: 40px; height: 40px; margin: -4px 4px -4px -4px; color: var(--accent); --glow: var(--blue); }
+:root[data-skin="web"] .cardlogo svg { width: 100%; height: 100%; overflow: visible; }
+:root[data-skin="web"] .tool .top { justify-content: flex-start; }
+:root[data-skin="web"] .tool .top h3 { flex: 1; min-width: 0; }
+:root[data-skin="web"] .tool.soon .cardlogo { color: var(--muted); }
+:root[data-skin="web"] a.tool:hover .cardlogo { transform: scale(1.12) rotate(-6deg); transition: transform .2s ease; }
+
+/* click animation */
+.webburst { position: fixed; z-index: 50; width: 220px; height: 220px; margin: -110px 0 0 -110px; pointer-events: none; color: var(--accent); animation: burst .65s cubic-bezier(.2,.8,.3,1) forwards; }
+.webburst svg { width: 100%; height: 100%; overflow: visible; }
+.webburst path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+@keyframes burst { 0% { transform: scale(.15) rotate(-30deg); opacity: 1; } 70% { opacity: .9; } 100% { transform: scale(1.15) rotate(0); opacity: 0; } }
+:root[data-skin="web"] a.tool.zap { transform: scale(.97); box-shadow: 0 0 0 2px var(--accent), 0 18px 40px -18px var(--accent); transition: transform .12s ease; }
+:root[data-skin="web"] a.tool.zap .cardlogo { animation: logoleap .43s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes logoleap { 0% { transform: none; } 40% { transform: translateY(-10px) scale(1.35) rotate(-12deg); } 100% { transform: translateY(-4px) scale(1.15) rotate(8deg); } }
+.fiberspider.flip svg { animation: logoflip .6s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes logoflip { 0% { transform: rotateY(0) scale(1); } 50% { transform: rotateY(180deg) scale(1.25); } 100% { transform: rotateY(360deg) scale(1); } }
+
+.lgmark { --glow: #9cc8ff; }
+.lgmark .draw { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: lgdraw .8s cubic-bezier(.3,.7,.3,1) forwards; }
+.lgmark .pulse { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-dasharray: .14 .86; stroke-dashoffset: 1.14; filter: drop-shadow(0 0 2px var(--glow)); animation: lgpulse 2.2s linear infinite; }
+.lgmark .node { fill: currentColor; transform-box: fill-box; transform-origin: center; animation: lgnode 2.2s ease-in-out infinite; }
+.lgmark .glow { fill: var(--glow); filter: drop-shadow(0 0 3px var(--glow)); animation: lgglow 2.2s ease-in-out infinite; }
+.lgmark .spin { transform-origin: 32px 32px; animation: lgspin 14s linear infinite; }
+.lgmark .bob { transform-origin: 32px 32px; animation: lgbob 2.4s ease-in-out infinite alternate; }
+.lgmark .blink { animation: lgblink 3s steps(1) infinite; }
+@keyframes lgdraw { to { stroke-dashoffset: 0; } }
+@keyframes lgpulse { 0% { stroke-dashoffset: 1.14; opacity: 1; } 75% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes lgnode { 0%, 60% { transform: scale(1); } 75% { transform: scale(1.7); fill: var(--glow); } 100% { transform: scale(1); } }
+@keyframes lgglow { 0%, 100% { opacity: .5; } 20% { opacity: 1; } }
+@keyframes lgspin { to { transform: rotate(360deg); } }
+@keyframes lgbob { from { transform: translateY(-1.5px) rotate(-4deg); } to { transform: translateY(1.5px) rotate(4deg); } }
+@keyframes lgblink { 0%, 92% { opacity: 1; } 94% { opacity: .1; } 96% { opacity: 1; } }
+@keyframes lgring { from { transform: scale(.35); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
+@keyframes lgwalk { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes lgwalk2 { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes lgneon { 0%, 100% { stroke: #ff3a55; filter: drop-shadow(0 0 2px #ff3a55); } 50% { stroke: #7aa2ff; filter: drop-shadow(0 0 3px #7aa2ff); } }
+@keyframes lgflick { 0%, 18%, 22%, 100% { opacity: 1; } 20% { opacity: .3; } }
+@keyframes lgdash { to { stroke-dashoffset: -1; } }
+@keyframes lgdrop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.lgmark .ring { fill: none; stroke: var(--glow); stroke-width: 1.4; transform-origin: 32px 34px; animation: lgring 2s ease-out infinite; }
+.lgmark .w1 { animation: lgwalk .5s steps(1) infinite; } .w2 { animation: lgwalk2 .5s steps(1) infinite; }
+.lgmark .neon { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; animation: lgneon 3s ease-in-out infinite, lgflick 4s linear infinite; }
+.lgmark .edge { fill: none; stroke: currentColor; stroke-width: 2; stroke-dasharray: .08 .04; animation: lgdash 6s linear infinite; }
+.lgmark .hop { transform-origin: 32px 40px; animation: lgdrop 1.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) { .lgmark * { animation: none !important; stroke-dashoffset: 0 !important; } }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
 </style>
 </head>
@@ -234,7 +453,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
 <div class="wrap">
   <header>
     <nav class="crumbs" id="crumbs" aria-label="Lokasi"></nav>
-    <div class="status" aria-live="polite"><div class="bar"><i id="barfill"></i></div><span id="statustext">Memuat Python…</span></div>
+    <button type="button" class="skinbtn" id="skinbtn">Tema</button><div class="status" aria-live="polite"><div class="bar"><i id="barfill"></i></div><span id="statustext">Memuat Python…</span></div>
   </header>
 
   <section id="view-menu" class="menu" hidden>
@@ -521,7 +740,7 @@ const MENU = {
         { id: "drawing-abd", view: "drawing", name: "DRAWING", status: "ready",
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
-        { id: "popup-abd", view: "popup", name: "EDIT POPUP KMZ", status: "ready",
+        { id: "popup-abd", view: "popup", name: "POPUP & TAGGING KMZ", status: "ready",
           desc: "Buka KMZ, edit isi popup tiap titik/garis di tabel seperti Excel (pilih sel, salin-tempel, tarik isi, undo, cari & ganti), lihat titiknya di peta, lalu download KMZ lagi.",
           io: ".kmz → .kmz (popup)" },
         { id: "pdf", name: "PDF diagram", status: "plan",
@@ -537,7 +756,7 @@ const MENU = {
         { id: "drawing-apd", view: "drawing", name: "DRAWING", status: "ready",
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
-        { id: "popup-apd", view: "popup", name: "EDIT POPUP KMZ", status: "ready",
+        { id: "popup-apd", view: "popup", name: "POPUP & TAGGING KMZ", status: "ready",
           desc: "Buka KMZ, edit isi popup tiap titik/garis di tabel seperti Excel (pilih sel, salin-tempel, tarik isi, undo, cari & ganti), lihat titiknya di peta, lalu download KMZ lagi.",
           io: ".kmz → .kmz (popup)" },
       ] },
@@ -2135,6 +2354,228 @@ $("pegrid").addEventListener("scroll", () => { if (G.menu) pgCloseList(); });
 
 // the name column is hidden once a folder has popup fields; search still looks at the name
 function peFindCols() { return PE.cols.some((c) => c.k === "__name") ? PE.cols : [{ k: "__name", label: "Nama" }, ...PE.cols]; }
+
+const PE_LOGOS = [
+  { id: "A", name: "Fiber Spider", note: "Badan = OLT, 8 kaki = kabel fiber yang berujung di titik. Cahaya biru mengalir keluar di tiap kaki (yang sekarang dipakai).", svg: () => {
+    const legs = [[[29,26],[20,15],[12,8]],[[28,30],[16,26],[6,22]],[[28,36],[15,40],[7,48]],[[29,41],[21,50],[17,60]],[[35,26],[44,15],[52,8]],[[36,30],[48,26],[58,22]],[[36,36],[49,40],[57,48]],[[35,41],[43,50],[47,60]]];
+    let L = "", P = "", N = "";
+    legs.forEach((p, i) => { const d = "M" + p.map((q) => q.join(" ")).join("L");
+      L += `<path class="draw" stroke-width="2.6" pathLength="1" style="animation-delay:${.1 + (i % 4) * .08}s" d="${d}"/>`;
+      P += `<path class="pulse" stroke-width="2.6" pathLength="1" style="animation-delay:${1 + i * .27}s" d="${d}"/>`;
+      N += `<circle class="node" cx="${p[2][0]}" cy="${p[2][1]}" r="2.3" style="animation-delay:${1.3 + i * .27}s"/>`; });
+    return `${L}${P}${N}<ellipse fill="currentColor" cx="32" cy="24" rx="4.6" ry="4"/><path fill="currentColor" d="M32 28c5.5 0 7.5 5 7.5 9.5S36 49 32 49s-7.5-7-7.5-11.5S26.5 28 32 28z"/><circle class="glow" cx="32" cy="37" r="2.6"/>`; } },
+  { id: "B", name: "Web Hub", note: "Lencana bulat: jaring yang berputar pelan, laba-laba kecil di tengah. Terasa seperti emblem tim.", svg: () => {
+    let w = "";
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; w += `<path class="draw" stroke-width="1.2" pathLength="1" style="animation-delay:${i * .04}s" d="M32 32L${(32 + Math.cos(a) * 29).toFixed(1)} ${(32 + Math.sin(a) * 29).toFixed(1)}"/>`; }
+    for (const r of [15, 21, 27]) { let d = ""; for (let i = 0; i <= 12; i++) { const a = i * Math.PI / 6, am = a - Math.PI / 12, x = 32 + Math.cos(a) * r, y = 32 + Math.sin(a) * r;
+      d += i ? `Q${(32 + Math.cos(am) * r * .9).toFixed(1)} ${(32 + Math.sin(am) * r * .9).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}` : `M${x.toFixed(1)} ${y.toFixed(1)}`; }
+      w += `<path class="draw" stroke-width="1.2" pathLength="1" style="animation-delay:${.4 + r * .02}s" d="${d}"/>`; }
+    const legs = [[-1,-2,-7,-8],[-1,0,-8,-2],[-1,2,-8,4],[-1,4,-6,9]].flatMap(([s,y,x2,y2]) => [[32 - 2, 32 + y, 32 + x2, 32 + y2], [32 + 2, 32 + y, 32 - x2, 32 + y2]]);
+    const sp = legs.map(([x1,y1,x2,y2]) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`).join("");
+    return `<circle cx="32" cy="32" r="30.5" fill="none" stroke="currentColor" stroke-width="2.2"/><g class="spin">${w}</g><circle cx="32" cy="32" r="11" fill="var(--bgdot, transparent)"/><g transform="translate(32 32) scale(1.9) translate(-32 -32)"><g class="bob">${sp}<circle cx="32" cy="29.5" r="2.4" fill="currentColor"/><ellipse cx="32" cy="34" rx="3.2" ry="4" fill="currentColor"/></g></g>`; } },
+  { id: "C", name: "Low-Poly", note: "Laba-laba geometris bersudut tajam, badan berlian dua tingkat. Kaki muncul satu per satu lalu matanya berkedip.", svg: () => {
+    const legs = [[30,25,22,17,14,16],[29,29,18,26,8,30],[29,34,18,38,10,46],[30,38,24,47,22,58],[34,25,42,17,50,16],[35,29,46,26,56,30],[35,34,46,38,54,46],[34,38,40,47,42,58]];
+    const L = legs.map((l, i) => `<path class="draw" stroke-width="2.4" pathLength="1" style="animation-delay:${i * .07}s" d="M${l[0]} ${l[1]}L${l[2]} ${l[3]}L${l[4]} ${l[5]}"/>`).join("");
+    return `<g class="bob">${L}<path fill="currentColor" d="M32 18l5 6-5 5-5-5z"/><path fill="currentColor" d="M32 29l7 7-2 10-5 6-5-6-2-10z" opacity=".95"/><path d="M32 29l7 7-7 4-7-4z" fill="#000" opacity=".18"/><circle class="blink" cx="30.6" cy="22.6" r=".9" fill="#d0102e"/><circle class="blink" cx="33.4" cy="22.6" r=".9" fill="#d0102e"/></g>`; } },
+  { id: "D", name: "Closure Spider", note: "Badan berbentuk closure / kotak sambungan, kakinya kabel yang keluar ke 8 arah dengan sambungan di ujung. Paling ‘FTTH’.", svg: () => {
+    const legs = [[24,24,14,14,8,16],[22,30,12,30,6,26],[22,36,12,38,6,44],[24,42,16,50,12,58],[40,24,50,14,56,16],[42,30,52,30,58,26],[42,36,52,38,58,44],[40,42,48,50,52,58]];
+    const L = legs.map((l, i) => `<path class="draw" stroke-width="2.4" pathLength="1" style="animation-delay:${i * .06}s" d="M${l[0]} ${l[1]}Q${l[2]} ${l[3]} ${l[4]} ${l[5]}"/>`).join("");
+    const P = legs.map((l, i) => `<path class="pulse" stroke-width="2.4" pathLength="1" style="animation-delay:${1 + i * .27}s" d="M${l[0]} ${l[1]}Q${l[2]} ${l[3]} ${l[4]} ${l[5]}"/>`).join("");
+    const N = legs.map((l, i) => `<rect class="node" x="${l[4] - 2}" y="${l[5] - 2}" width="4" height="4" rx="1" style="animation-delay:${1.3 + i * .27}s"/>`).join("");
+    return `${L}${P}${N}<rect x="22" y="20" width="20" height="26" rx="6" fill="currentColor"/><rect x="26" y="25" width="12" height="2.4" rx="1.2" class="glow"/><rect x="26" y="30" width="12" height="2.4" rx="1.2" class="glow" style="animation-delay:.3s"/><rect x="26" y="35" width="12" height="2.4" rx="1.2" class="glow" style="animation-delay:.6s"/>`; } },
+  { id: "E", name: "Comic Drop", note: "Laba-laba bulat gaya kartun yang bergantung di benang di dalam lingkaran berlatar garis kecepatan. Paling playful.", svg: () => {
+    let rays = ""; for (let i = 0; i < 18; i++) { const a = i * Math.PI / 9; rays += `<path d="M${(32 + Math.cos(a) * 18).toFixed(1)} ${(32 + Math.sin(a) * 18).toFixed(1)}L${(32 + Math.cos(a) * 29).toFixed(1)} ${(32 + Math.sin(a) * 29).toFixed(1)}" stroke="currentColor" stroke-width="1" opacity=".35"/>`; }
+    const legs = [[-5,-3,-11,-8],[-6,0,-13,-1],[-6,3,-12,7],[-4,6,-9,12]].flatMap(([x1,y1,x2,y2]) => [[x1,y1,x2,y2],[-x1,y1,-x2,y2]]);
+    const sp = legs.map(([x1,y1,x2,y2]) => `<path d="M${32 + x1} ${38 + y1}Q${32 + (x1 + x2) / 2} ${38 + Math.min(y1, y2) - 4} ${32 + x2} ${38 + y2}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`).join("");
+    return `<g class="spin" style="animation-duration:30s">${rays}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="currentColor" stroke-width="2.2"/><g class="bob" style="transform-origin:32px 2px"><path d="M32 2V30" stroke="currentColor" stroke-width="1"/>${sp}<circle cx="32" cy="38" r="7" fill="currentColor"/><circle cx="29.5" cy="36.5" r="1.6" fill="#fff"/><circle cx="34.5" cy="36.5" r="1.6" fill="#fff"/><circle cx="29.9" cy="36.8" r=".7" fill="#111"/><circle cx="34.9" cy="36.8" r=".7" fill="#111"/></g>`; } },
+];
+PE_LOGOS.push(
+  { id: "F", name: "Signal Spider", note: "Badan laba-laba memancarkan cincin sinyal yang terus mengembang, seperti perangkat yang sedang memancar.", svg: () => {
+    const legs = [[-4,-4,-12,-11,-17,-6],[-5,-1,-14,-3,-21,2],[-5,3,-13,7,-18,15],[-3,6,-9,14,-10,22]].flatMap(([a,b,c,d,e,f]) => [[a,b,c,d,e,f],[-a,b,-c,d,-e,f]]);
+    const L = legs.map((l, i) => `<path class="draw" stroke-width="2.4" pathLength="1" style="animation-delay:${i * .06}s" d="M${32 + l[0]} ${34 + l[1]}L${32 + l[2]} ${34 + l[3]}L${32 + l[4]} ${34 + l[5]}"/>`).join("");
+    return `<circle class="ring" cx="32" cy="34" r="26"/><circle class="ring" cx="32" cy="34" r="26" style="animation-delay:.7s"/><circle class="ring" cx="32" cy="34" r="26" style="animation-delay:1.4s"/>${L}<circle cx="32" cy="27" r="4" fill="currentColor"/><ellipse cx="32" cy="36" rx="6" ry="7.5" fill="currentColor"/><circle class="glow" cx="32" cy="36" r="2"/>`; } },
+  { id: "G", name: "Pin Spider", note: "Badannya pin lokasi Google Earth, kakinya keluar dari pin. Melompat kecil di tempat. Cocok untuk tool KMZ.", svg: () => {
+    const legs = [[-6,-2,-15,-8,-20,-3],[-7,3,-17,2,-23,8],[-6,8,-14,12,-17,20],[-3,12,-8,19,-8,27]].flatMap(([a,b,c,d,e,f]) => [[a,b,c,d,e,f],[-a,b,-c,d,-e,f]]);
+    const L = legs.map((l, i) => `<path class="draw" stroke-width="2.4" pathLength="1" style="animation-delay:${i * .06}s" d="M${32 + l[0]} ${24 + l[1]}L${32 + l[2]} ${24 + l[3]}L${32 + l[4]} ${24 + l[5]}"/>`).join("");
+    return `<g class="hop">${L}<path fill="currentColor" d="M32 8c-7.7 0-13 5.6-13 12.6C19 30 32 44 32 44s13-14 13-23.4C45 13.6 39.7 8 32 8z"/><circle cx="32" cy="20.5" r="5" fill="#d0102e"/></g><ellipse cx="32" cy="58" rx="9" ry="2" fill="currentColor" opacity=".25"/>`; } },
+  { id: "H", name: "Hex Badge", note: "Laba-laba siluet dalam perisai segi enam, garis tepinya berputar pelan seperti lencana tim lapangan.", svg: () => {
+    const hex = Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 6 + i * Math.PI / 3; return `${(32 + Math.cos(a) * 29).toFixed(1)} ${(32 + Math.sin(a) * 29).toFixed(1)}`; }).join("L");
+    const legs = [[-3,-4,-9,-11,-14,-9],[-4,-1,-12,-3,-17,1],[-4,2,-11,6,-14,12],[-2,5,-7,11,-8,17]].flatMap(([a,b,c,d,e,f]) => [[a,b,c,d,e,f],[-a,b,-c,d,-e,f]]);
+    const L = legs.map((l) => `<path d="M${32 + l[0]} ${32 + l[1]}L${32 + l[2]} ${32 + l[3]}L${32 + l[4]} ${32 + l[5]}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`).join("");
+    return `<path d="M${hex}Z" fill="currentColor" opacity=".12"/><path class="edge" pathLength="1" d="M${hex}Z"/><g class="bob">${L}<circle cx="32" cy="26" r="3.4" fill="currentColor"/><path fill="currentColor" d="M32 29c4.4 0 6 4 6 7.5S35.2 45 32 45s-6-5-6-8.5S27.6 29 32 29z"/></g>`; } },
+  { id: "I", name: "Pixel Spider", note: "Laba-laba 8-bit gaya game jadul, kakinya bergerak seperti sedang berjalan.", svg: () => {
+    const px = (cells, cls) => `<g class="${cls}">` + cells.map(([x, y]) => `<rect x="${x * 4}" y="${y * 4}" width="4" height="4" fill="currentColor"/>`).join("") + "</g>";
+    const body = [[7,5],[8,5],[6,6],[7,6],[8,6],[9,6],[6,7],[7,7],[8,7],[9,7],[5,8],[6,8],[7,8],[8,8],[9,8],[10,8],[5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[6,10],[7,10],[8,10],[9,10],[7,11],[8,11]];
+    const legsA = [[4,4],[3,3],[4,6],[2,6],[4,9],[2,10],[5,11],[4,12],[11,4],[12,3],[11,6],[13,6],[11,9],[13,10],[10,11],[11,12],[5,5],[10,5],[5,7],[10,7]];
+    const legsB = [[4,5],[3,4],[4,7],[2,7],[4,8],[2,9],[5,12],[4,13],[11,5],[12,4],[11,7],[13,7],[11,8],[13,9],[10,12],[11,13],[5,6],[10,6],[5,10],[10,10]];
+    return px(legsA, "w1") + px(legsB, "w2") + px(body, "") + `<rect x="28" y="24" width="3" height="3" fill="#d0102e"/><rect x="33" y="24" width="3" height="3" fill="#d0102e"/>`; } },
+  { id: "J", name: "Neon Line", note: "Laba-laba garis tipis gaya lampu neon. Warnanya berganti merah ke biru dan sesekali berkedip.", svg: () => {
+    const legs = [[-4,-3,-11,-12,-17,-9],[-5,0,-14,-4,-21,0],[-5,3,-13,8,-17,15],[-3,6,-8,14,-9,22]].flatMap(([a,b,c,d,e,f]) => [[a,b,c,d,e,f],[-a,b,-c,d,-e,f]]);
+    const L = legs.map((l) => `M${32 + l[0]} ${32 + l[1]}L${32 + l[2]} ${32 + l[3]}L${32 + l[4]} ${32 + l[5]}`).join("");
+    return `<path class="neon" d="${L}"/><circle class="neon" cx="32" cy="25" r="4"/><path class="neon" d="M32 29c5 0 7 4.5 7 8.5S36 47 32 47s-7-5.5-7-9.5S27 29 32 29z"/>`; } },
+);
+
+// ---- skin toggle (per viewer, remembered in this browser) + drawn web and spider ----
+(function () {
+  const root = document.documentElement, b = document.getElementById("skinbtn");
+
+  // a corner web: spokes from the top-right corner, sagging threads between them (white, used as a CSS mask)
+  function drawWeb() {
+    const N = 900, c = document.createElement("canvas"); c.width = c.height = N;
+    const g = c.getContext("2d"); g.strokeStyle = "#fff"; g.lineCap = "round";
+    const cx = N, cy = 0, spokes = 11, rings = 13, a0 = Math.PI / 2, a1 = Math.PI;
+    const ang = (i) => a0 + (a1 - a0) * (i / (spokes - 1)) + (i % 2 ? .015 : -.01);
+    g.lineWidth = 2.2;
+    for (let i = 0; i < spokes; i++) { const a = ang(i); g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * N * 1.5, cy + Math.sin(a) * N * 1.5); g.stroke(); }
+    g.lineWidth = 1.6;
+    for (let k = 1; k <= rings; k++) {
+      const r = Math.pow(k / rings, 1.18) * N * 1.32;
+      g.beginPath();
+      for (let i = 0; i < spokes - 1; i++) {
+        const aA = ang(i), aB = ang(i + 1), rA = r * (1 + ((i * 7 + k) % 5) * .012), rB = r * (1 + (((i + 1) * 7 + k) % 5) * .012);
+        const ax = cx + Math.cos(aA) * rA, ay = cy + Math.sin(aA) * rA, bx = cx + Math.cos(aB) * rB, by = cy + Math.sin(aB) * rB;
+        const am = (aA + aB) / 2, rm = (rA + rB) / 2 * .9;                 // threads sag toward the hub
+        if (i === 0) g.moveTo(ax, ay);
+        g.quadraticCurveTo(cx + Math.cos(am) * rm, cy + Math.sin(am) * rm, bx, by);
+      }
+      g.stroke();
+    }
+    return c.toDataURL("image/png");
+  }
+  // a generic spider (body, head, eight jointed legs)
+  function drawSpider(color) {
+    const N = 96, c = document.createElement("canvas"); c.width = c.height = N;
+    const g = c.getContext("2d"); g.strokeStyle = g.fillStyle = color; g.lineWidth = 3.2; g.lineCap = g.lineJoin = "round";
+    const legs = [[-1, 30, [[-14, -14], [-26, -6]]], [-1, 40, [[-18, -4], [-32, 6]]], [-1, 50, [[-18, 8], [-28, 22]]], [-1, 58, [[-12, 16], [-18, 32]]]];
+    for (const [, y, pts] of legs) for (const s of [-1, 1]) {
+      g.beginPath(); g.moveTo(48 + s * 7, y); for (const [x, yy] of pts) g.lineTo(48 - s * x, y + yy); g.stroke();
+    }
+    g.beginPath(); g.ellipse(48, 30, 8, 7, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(48, 52, 11, 14, 0, 0, Math.PI * 2); g.fill();
+    return c.toDataURL("image/png");
+  }
+
+  // the same web as live SVG paths, so each thread can be spun in on load
+  function webSVG() {
+    const N = 900, cx = N, cy = 0, spokes = 11, rings = 13, a0 = Math.PI / 2, a1 = Math.PI;
+    const ang = (i) => a0 + (a1 - a0) * (i / (spokes - 1)) + (i % 2 ? .015 : -.01), f = (v) => v.toFixed(1);
+    let out = "";
+    for (let i = 0; i < spokes; i++) { const a = ang(i);
+      out += `<path class="sp" pathLength="1" style="animation-delay:${(i * .035).toFixed(3)}s" d="M${cx} ${cy}L${f(cx + Math.cos(a) * N * 1.5)} ${f(cy + Math.sin(a) * N * 1.5)}"/>`; }
+    for (let k = 1; k <= rings; k++) {
+      const r = Math.pow(k / rings, 1.18) * N * 1.32; let d = "";
+      for (let i = 0; i < spokes - 1; i++) {
+        const aA = ang(i), aB = ang(i + 1), rA = r * (1 + ((i * 7 + k) % 5) * .012), rB = r * (1 + (((i + 1) * 7 + k) % 5) * .012);
+        const am = (aA + aB) / 2, rm = (rA + rB) / 2 * .9;
+        if (i === 0) d += `M${f(cx + Math.cos(aA) * rA)} ${f(cy + Math.sin(aA) * rA)}`;
+        d += `Q${f(cx + Math.cos(am) * rm)} ${f(cy + Math.sin(am) * rm)} ${f(cx + Math.cos(aB) * rB)} ${f(cy + Math.sin(aB) * rB)}`;
+      }
+      out += `<path class="rg" pathLength="1" style="animation-delay:${(.3 + k * .05).toFixed(3)}s" d="${d}"/>`;
+    }
+    return `<svg viewBox="0 0 ${N} ${N}" aria-hidden="true">${out}</svg>`;
+  }
+  // original mark: OLT body with eight fiber legs that end at nodes; light pulses run out along the legs
+  function fiberSpiderSVG() {
+    const legs = [
+      [[29, 26], [20, 15], [12, 8]], [[28, 30], [16, 26], [6, 22]], [[28, 36], [15, 40], [7, 48]], [[29, 41], [21, 50], [17, 60]],
+      [[35, 26], [44, 15], [52, 8]], [[36, 30], [48, 26], [58, 22]], [[36, 36], [49, 40], [57, 48]], [[35, 41], [43, 50], [47, 60]],
+    ];
+    let L = "", P = "", N = "";
+    legs.forEach((pts, i) => {
+      const d = "M" + pts.map((p) => p.join(" ")).join("L"), dl = (i % 4) * .08 + (i > 3 ? .04 : 0);
+      L += `<path class="leg" pathLength="1" style="animation-delay:${(.15 + dl).toFixed(2)}s" d="${d}"/>`;
+      P += `<path class="pulse" pathLength="1" style="animation-delay:${(1 + i * .27).toFixed(2)}s" d="${d}"/>`;
+      const e = pts[2]; N += `<circle class="node" cx="${e[0]}" cy="${e[1]}" r="2.3" style="animation-delay:${(1 + i * .27 + .3).toFixed(2)}s"/>`;
+    });
+    return `<svg viewBox="0 0 64 64" aria-hidden="true"><g class="wrapin">${L}${P}${N}
+      <ellipse class="body" cx="32" cy="24" rx="4.6" ry="4"/><path class="body" d="M32 28c5.5 0 7.5 5 7.5 9.5S36 49 32 49s-7.5-7-7.5-11.5S26.5 28 32 28z"/>
+      <circle class="core" cx="32" cy="37" r="2.6"/></g></svg>`;
+  }
+  let mark = null, lgPick = null, lgCur = 0;
+  // one logo per page, matched to the work done there; clicking the logo cycles through all of them
+  const LOGO_FOR = { menu: "A", abd: "H", apd: "B", cmld: "D", hb: "F", "drawing-abd": "G", "drawing-apd": "G", "popup-abd": "I", "popup-apd": "I" };
+  function showLogo() {
+    if (!mark || typeof PE_LOGOS === "undefined") return;
+    const page = location.hash.slice(1) || "menu";
+    const i = lgPick != null ? lgPick : Math.max(0, PE_LOGOS.findIndex((o) => o.id === (LOGO_FOR[page] || "A")));
+    if (i === lgCur && mark.firstChild) return;
+    lgCur = i; const o = PE_LOGOS[i];
+    mark.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true">${o.svg()}</svg>`;
+    mark.title = `${o.name} (klik untuk ganti logo)`; mark.setAttribute("aria-label", `Logo ${o.name}, klik untuk ganti`);
+  }
+  addEventListener("hashchange", () => { lgPick = null; lgCur = -1; showLogo(); });
+  // a logo on every tool / group card, matched to its work
+  const CARD_LOGO = { "CMLD": "D", "DRAWING": "G", "POPUP & TAGGING KMZ": "I", "PDF diagram": "C", "Baca catatan lapangan": "E", "CMLD CQT": "F", "ABD": "H", "APD": "B" };
+  function decorateCards() {
+    if (root.dataset.skin !== "web" || typeof PE_LOGOS === "undefined") return;
+    document.querySelectorAll("#tools .tool").forEach((card) => {
+      if (card.querySelector(".cardlogo")) return;
+      const h = card.querySelector("h3"); if (!h) return;
+      const o = PE_LOGOS.find((x) => x.id === (CARD_LOGO[h.textContent.trim()] || "A")); if (!o) return;
+      const m = document.createElement("span"); m.className = "cardlogo lgmark"; m.setAttribute("aria-hidden", "true");
+      m.innerHTML = `<svg viewBox="0 0 64 64">${o.svg()}</svg>`;
+      h.before(m);
+    });
+  }
+  // click on a card: a web bursts out from the pointer, the card logo leaps, then the tool opens
+  const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function burst(x, y) {
+    const d = document.createElement("div"); d.className = "webburst"; d.style.left = x + "px"; d.style.top = y + "px";
+    let w = ""; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; w += `M0 0L${(Math.cos(a) * 50).toFixed(1)} ${(Math.sin(a) * 50).toFixed(1)}`; }
+    for (const r of [16, 30, 44]) { let q = ""; for (let i = 0; i <= 12; i++) { const a = i * Math.PI / 6, am = a - Math.PI / 12;
+      q += i ? `Q${(Math.cos(am) * r * .88).toFixed(1)} ${(Math.sin(am) * r * .88).toFixed(1)} ${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}` : `M${r} 0`; } w += q; }
+    d.innerHTML = `<svg viewBox="-55 -55 110 110"><path d="${w}"/></svg>`;
+    document.body.append(d); setTimeout(() => d.remove(), 700);
+  }
+  document.addEventListener("click", (ev) => {
+    if (root.dataset.skin !== "web") return;
+    const card = ev.target.closest("a.tool");
+    if (card && !(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) && !reduce()) {
+      ev.preventDefault();
+      card.classList.add("zap");
+      setTimeout(() => { card.classList.remove("zap"); location.hash = card.getAttribute("href"); }, 260);
+      return;
+    }
+    const lg = ev.target.closest(".fiberspider");
+    if (lg && !reduce()) { lg.classList.remove("flip"); void lg.offsetWidth; lg.classList.add("flip"); }
+  }, true);
+  try { new MutationObserver(decorateCards).observe(document.getElementById("tools"), { childList: true }); } catch (e) {}
+  let webs = [];
+  let webDone = false, sp = null, skin = "web";
+  try { skin = localStorage.getItem("tk-skin") || "web"; } catch (e) {}
+  const dark = () => root.dataset.theme === "dark" || (root.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+  function apply() {
+    if (skin === "web") {
+      root.dataset.skin = "web";
+      if (!webDone) { try { root.style.setProperty("--webimg", `url(${drawWeb()})`); } catch (e) {} webDone = true; }
+      if (!mark) { const h = document.querySelector("header"); if (h) {
+        mark = document.createElement("button"); mark.type = "button"; mark.className = "fiberspider lgmark";
+        mark.addEventListener("click", () => { lgPick = (lgCur + 1) % PE_LOGOS.length; showLogo(); });
+        h.prepend(mark); showLogo(); } }
+      if (!webs.length) for (const cls of ["tr", "bl"]) { const w = document.createElement("div"); w.className = "webcorner " + cls; w.innerHTML = webSVG(); document.body.prepend(w); webs.push(w); }
+      if (!sp) {
+        sp = document.createElement("div"); sp.className = "dropspider"; sp.setAttribute("aria-hidden", "true");
+        sp.innerHTML = "<i></i><img alt=''>"; document.body.append(sp);
+        sp.querySelector("img").addEventListener("click", () => { sp.classList.remove("climb"); void sp.offsetWidth; sp.classList.add("climb"); });
+      }
+      sp.querySelector("img").src = drawSpider(dark() ? "#e9edf8" : "#111a33");
+    } else {
+      delete root.dataset.skin;
+      if (sp) { sp.remove(); sp = null; }
+      webs.forEach((w) => w.remove()); webs = [];
+    }
+    if (b) b.textContent = "Tema: " + (skin === "web" ? "Merah-Biru" : "Default");
+    if (skin === "web") decorateCards(); else document.querySelectorAll(".cardlogo").forEach((x) => x.remove());
+  }
+  // condensed display face for the hero look (falls back to Oswald / Arial Narrow)
+  try {
+    const l = document.createElement("link"); l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap"; document.head.append(l);
+  } catch (e) {}
+  apply();
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", apply); } catch (e) {}
+  if (b) b.onclick = () => { skin = skin === "web" ? "default" : "web"; try { localStorage.setItem("tk-skin", skin); } catch (e) {} apply(); };
+})();
 
 </script>
 </body>
