@@ -50,6 +50,7 @@ h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: 
 form { display: grid; gap: 18px; }
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; min-width: 0; }
 label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label.f select { width: 100%; font: 14px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
 input[type=text], input[type=number] { width: 100%; font: 14px var(--sans); color: var(--fg); background: var(--bg);
   border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
 input:focus-visible, button:focus-visible, .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -729,10 +730,23 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
           <label class="drop" id="hbdrop" for="hbfile">
             <input type="file" id="hbfile" accept=".xlsx,.xlsm">
             <strong id="hbfname">Contoh: FXXXXX</strong>
-            <span>Klik atau tarik file Excel ke sini · HB, lalu LINE · PANJANG SB · PANJANG EB</span>
+            <span>Klik atau tarik file Excel ke sini · HB, lalu LINE · PANJANG 1 · PANJANG 2 (· PANJANG 3 · PANJANG 4)</span>
           </label>
           <div class="chips"><button type="button" class="chip" id="hbsample">Pakai data contoh</button><button type="button" class="chip" id="hbtpl">Download template Excel</button></div>
           <label class="f">Nama file DXF <input type="text" id="hbbase" autocomplete="off" placeholder="mis. FXXXXX"></label>
+          <label class="f">Tipe CQT
+            <select id="hbtype">
+              <option value="reg">CQT Reguler (label CQT, Sub Box 30/70)</option>
+              <option value="hw">CQT Huawei (label QODN-HW)</option>
+            </select>
+          </label>
+          <label class="f">Line dengan 1 perangkat
+            <select id="hbsingle">
+              <option value="sb">SUB BOX (kode ..01)</option>
+              <option value="eb">END BOX (kode ..02)</option>
+              <option value="col">Ikut kolom yang diisi (PANJANG 1 / SB = SUB BOX, kolom lain = END BOX)</option>
+            </select>
+          </label>
         </fieldset>
         <button type="submit" class="primary" id="hbgo" disabled>Buat</button>
         <fieldset>
@@ -741,7 +755,7 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
             <thead><tr><th>Row</th><th>Line</th><th>FAT code</th><th>Panjang</th></tr></thead>
             <tbody id="hbrows"><tr><td colspan="4" class="empty">Belum ada data.</td></tr></tbody>
           </table></div>
-          <p class="msg">Kode FAT dibuat otomatis dari nama HB: line A/B = S01, C/D = S02, E/F = S03, G/H = S04 (maks 8 line). 01 = SB, 02 = EB; line dengan 1 perangkat: isi satu PANJANG saja, perangkatnya SUB BOX (..01). Format lama (B LINE · C FAT CODE · I PANJANG) tetap terbaca.</p>
+          <p class="msg">Kode FAT dibuat otomatis dari nama HB: line A/B = S01, C/D = S02, E/F = S03, G/H = S04 (maks 8 line). Tiap line 2 atau 4 perangkat berurutan: isi PANJANG 1-2 atau PANJANG 1-4. Perangkat 01, 02, 03 = SUB BOX, yang terakhir = END BOX (line 2 perangkat: 01 SB, 02 EB). Line 1 perangkat: pilih SUB BOX / END BOX di atas. Format lama (PANJANG SB / EB, atau B LINE · C FAT CODE · I PANJANG) tetap terbaca.</p>
         </fieldset>
       </form>
     </div>
@@ -1092,11 +1106,15 @@ async function hbLoadSample() {
   $("hbbase").value = "";
   hbRun();
 }
+try { const v = localStorage.getItem("tk-hb-single"); if (v && $("hbsingle").querySelector('option[value="' + v + '"]')) $("hbsingle").value = v; } catch (e) {}
+try { const v = localStorage.getItem("tk-hb-type"); if (v && $("hbtype").querySelector('option[value="' + v + '"]')) $("hbtype").value = v; } catch (e) {}
+$("hbtype").addEventListener("change", () => { try { localStorage.setItem("tk-hb-type", $("hbtype").value); } catch (e) {} hbRun(); });
+$("hbsingle").addEventListener("change", () => { try { localStorage.setItem("tk-hb-single", $("hbsingle").value); } catch (e) {} hbRun(); });
 function hbRun() {
   if (!pyReady || busy || !hbInput) return;
   busy = true; $("hbgo").disabled = true; $("go").disabled = true; setStatus("Memproses…", 100);
   worker.postMessage({ type: "run", fn: "process_hb", id: ++runId, bytes: hbInput.bytes.slice(0), filename: hbInput.name,
-    options: { base: $("hbbase").value.trim() ? safeFile($("hbbase").value.trim()) : "" } });
+    options: { base: $("hbbase").value.trim() ? safeFile($("hbbase").value.trim()) : "", single_as: $("hbsingle").value, cqt_type: $("hbtype").value } });
 }
 function hbShow(r) {
   hbLast = r;
@@ -1107,7 +1125,7 @@ function hbShow(r) {
     sum.append(pill(r.log[r.log.length - 1] || "Gagal", "err"));
     $("hbpreview").innerHTML = '<div class="empty">Tidak ada preview. Periksa kolom B, C, dan I di Excel.</div>';
   } else {
-    const fats = r.lines.reduce((n, L) => n + (L.sb ? 1 : 0) + (L.eb ? 1 : 0), 0);
+    const fats = r.lines.reduce((n, L) => n + (L.devs ? L.devs.length : (L.sb ? 1 : 0) + (L.eb ? 1 : 0)), 0);
     sum.append(pill("HB " + r.hub), pill(r.lines.length + " port"), pill(Math.ceil(r.lines.length / 2) + " splitter"), pill(fats + " FAT"));
     sum.append(r.warnings.length ? pill(r.warnings.length + " peringatan", "warn") : pill("Data OK", "ok"));
     $("hbpreview").innerHTML = r.svg;
