@@ -871,6 +871,9 @@ const MENU = {
         { id: "popup-abd", view: "popup", name: "POPUP & TAGGING KMZ", status: "ready",
           desc: "Buka KMZ, edit isi popup tiap titik/garis di tabel seperti Excel (pilih sel, salin-tempel, tarik isi, undo, cari & ganti), lihat titiknya di peta, lalu download KMZ lagi.",
           io: ".kmz → .kmz (popup)" },
+        { id: "legend-abd", name: "LEGEND LINK NET", status: "ready", href: "LEGEND_ICON_LINK_NET.dxf", download: "LEGEND_ICON_LINK_NET.dxf",
+          desc: "Legend icon Link Net untuk AutoCAD: 1 layer per keterangan, warna layer ikut warna icon, kabel tebal 0.30, skala tiang 0.5.",
+          io: "unduh .dxf" },
         { id: "pdf", name: "PDF diagram", status: "plan",
           desc: "Diagram jaringan siap cetak dalam PDF, dari data yang sama dengan DXF.", io: ".xlsx / .json → .pdf" },
         { id: "foto", name: "Baca catatan lapangan", status: "plan",
@@ -887,6 +890,9 @@ const MENU = {
         { id: "popup-apd", view: "popup", name: "POPUP & TAGGING KMZ", status: "ready",
           desc: "Buka KMZ, edit isi popup tiap titik/garis di tabel seperti Excel (pilih sel, salin-tempel, tarik isi, undo, cari & ganti), lihat titiknya di peta, lalu download KMZ lagi.",
           io: ".kmz → .kmz (popup)" },
+        { id: "legend-apd", name: "LEGEND LINK NET", status: "ready", href: "LEGEND_ICON_LINK_NET.dxf", download: "LEGEND_ICON_LINK_NET.dxf",
+          desc: "Legend icon Link Net untuk AutoCAD: 1 layer per keterangan, warna layer ikut warna icon, kabel tebal 0.30, skala tiang 0.5.",
+          io: "unduh .dxf" },
       ] },
   ],
 };
@@ -925,7 +931,8 @@ function renderGroup(g) {
     const group = isGroup(t), ready = group || t.status === "ready";
     const el = document.createElement(ready ? "a" : "div");
     el.className = "tool" + (ready ? "" : " soon");
-    if (ready) el.href = "#" + t.id;
+    if (ready) el.href = t.href || "#" + t.id;
+    if (t.download) el.setAttribute("download", t.download);
     const top = document.createElement("div"); top.className = "top";
     const h = document.createElement("h3"); h.textContent = t.name;
     top.append(h);
@@ -943,7 +950,7 @@ function renderGroup(g) {
 
 function route() {
   let node = NODES[location.hash.slice(1)] || MENU;
-  if (!isGroup(node) && node.status !== "ready") node = PARENT[node.id];
+  if (!isGroup(node) && (node.status !== "ready" || node.href)) node = PARENT[node.id];
   const tool = isGroup(node) ? null : node;
   $("view-menu").hidden = !!tool;
   document.querySelectorAll('section[id^="view-"]').forEach((v) => { if (v.id !== "view-menu") v.hidden = !tool || v.id !== "view-" + (tool.view || tool.id); });
@@ -2661,7 +2668,7 @@ PE_LOGOS.push(
   }
   document.addEventListener("click", (ev) => {
     if (root.dataset.skin !== "web" && root.dataset.skin !== "fiber") return;
-    const card = ev.target.closest("a.tool");
+    const card = ev.target.closest("a.tool:not([download])");
     if (card && !(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) && !reduce()) {
       ev.preventDefault();
       card.classList.add("zap");
