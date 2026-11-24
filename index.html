@@ -573,8 +573,58 @@ details.hbmore { margin-top: 12px; border-top: 1px solid var(--line, rgba(127,12
 details.hbmore[open] summary { margin-bottom: 8px; }
 .boqfilebox { min-height: 0 !important; padding: 10px !important; margin-top: 10px; }
 </style>
+<script>
+/* simple username gate for the public GitHub Pages copy (a fence, not real security) */
+(function () {
+  var on = /github\.io$/.test(location.hostname) || /[?&]gate=1/.test(location.search);
+  var ok = false; try { ok = !!localStorage.getItem("tk-user"); } catch (e) {}
+  if (on && !ok) document.documentElement.classList.add("tklocked");
+  window.TK_GATE = on;
+})();
+</script>
+<style>
+html.tklocked body > :not(#tkgate) { display: none !important; }
+#tkgate { display: none; }
+html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: center; justify-content: center; padding: 16px; background: var(--bg, #f3f4f8); z-index: 9999; }
+#tkgate form { width: 100%; max-width: 340px; background: var(--panel, #fff); border-radius: 14px; padding: 22px; box-shadow: 0 12px 40px -18px rgba(0,0,0,.35); font: 14px system-ui, sans-serif; color: inherit; }
+#tkgate h1 { font-size: 18px; margin: 0 0 4px; }
+#tkgate p { margin: 0 0 14px; opacity: .7; }
+#tkgate input { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; border: 1px solid rgba(127,127,127,.4); border-radius: 8px; background: transparent; color: inherit; }
+#tkgate button { margin-top: 12px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: #c8102e; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+#tkgate .err { color: #c8102e; margin: 8px 0 0; min-height: 1em; opacity: 1; }
+#tklogout { position: fixed; right: 12px; bottom: 12px; z-index: 50; font: 12px system-ui, sans-serif; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(127,127,127,.35); background: var(--panel, #fff); color: inherit; cursor: pointer; opacity: .8; }
+</style>
 </head>
 <body>
+<div id="tkgate"><form id="tkgateform" autocomplete="on">
+  <h1>Toolkit FTTH</h1>
+  <p>Masukkan username untuk membuka.</p>
+  <input id="tkgateuser" name="username" autocomplete="username" placeholder="Username" autofocus>
+  <button type="submit">Masuk</button>
+  <p class="err" id="tkgateerr"></p>
+</form></div>
+<script>
+(function () {
+  var USERS = ["382a287153afde9d2f0942fffc8890f6743c720d10f298ca20597c9bd7ca9ebb", "9a0a02157482ed8fd9c68f35da29e6c0073c3d907a84c2ae1e6c914528da007e", "db42328112177c2d6f2f6ca7f33c8e81084b8ff3e14202254137e22673bce2c8"];   // sha-256 of the lower-case username
+  async function sha(t) { var b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(function (x) { return x.toString(16).padStart(2, "0"); }).join(""); }
+  document.getElementById("tkgateform").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var u = document.getElementById("tkgateuser").value.trim().toLowerCase();
+    if (u && USERS.indexOf(await sha(u)) >= 0) {
+      try { localStorage.setItem("tk-user", u); } catch (er) {}
+      document.documentElement.classList.remove("tklocked");
+      location.reload();
+    } else document.getElementById("tkgateerr").textContent = "Username tidak terdaftar.";
+  });
+  if (window.TK_GATE && !document.documentElement.classList.contains("tklocked")) {
+    var b = document.createElement("button"); b.id = "tklogout"; b.type = "button";
+    var who = ""; try { who = localStorage.getItem("tk-user") || ""; } catch (er) {}
+    b.textContent = "Keluar" + (who ? " (" + who + ")" : "");
+    b.onclick = function () { try { localStorage.removeItem("tk-user"); } catch (er) {} location.reload(); };
+    document.addEventListener("DOMContentLoaded", function () { document.body.append(b); });
+  }
+})();
+</script>
 
 <div class="wrap">
   <header>
