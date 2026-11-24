@@ -562,6 +562,16 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
   :root[data-skin="fiber"] a.tool:hover::before { animation: none; }
 }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+.boqgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 12px; margin-top: 10px; align-items: end; }
+.boqgrid label.f { margin: 0; }
+#boqrows td.over { color: var(--err, #c0392b); font-weight: 600; }
+table.hbtab input { width: 100%; min-width: 56px; box-sizing: border-box; padding: 4px 6px; font: inherit; border: 1px solid var(--line, #ccd); border-radius: 6px; background: transparent; color: inherit; }
+table.hbtab th, table.hbtab td { padding: 3px 4px; }
+.hbset { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+@media (max-width: 520px) { .hbset { grid-template-columns: 1fr; } }
+details.hbmore { margin-top: 12px; border-top: 1px solid var(--line, rgba(127,127,127,.25)); padding-top: 10px; }
+details.hbmore[open] summary { margin-bottom: 8px; }
+.boqfilebox { min-height: 0 !important; padding: 10px !important; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -726,50 +736,78 @@ button.sec.danger { border-color: var(--err); color: var(--err); background: var
     <div class="panel">
       <form id="hbform" novalidate>
         <fieldset>
-          <h2>Data</h2>
-          <label class="drop" id="hbdrop" for="hbfile">
-            <input type="file" id="hbfile" accept=".xlsx,.xlsm">
-            <strong id="hbfname">Contoh: FXXXXX</strong>
-            <span>Klik atau tarik file Excel ke sini · HB, lalu LINE · PANJANG 1 · PANJANG 2 (· PANJANG 3 · PANJANG 4)</span>
-          </label>
-          <div class="chips"><button type="button" class="chip" id="hbsample">Pakai data contoh</button><button type="button" class="chip" id="hbtpl">Download template Excel</button></div>
-          <label class="f">Nama file DXF <input type="text" id="hbbase" autocomplete="off" placeholder="mis. FXXXXX"></label>
-          <label class="f">Tipe CQT
-            <select id="hbtype">
-              <option value="reg">CQT Reguler (label CQT, Sub Box 30/70)</option>
-              <option value="hw">CQT Huawei (label QODN-HW)</option>
-            </select>
-          </label>
-          <label class="f">Line dengan 1 perangkat
-            <select id="hbsingle">
-              <option value="sb">SUB BOX (kode ..01)</option>
-              <option value="eb">END BOX (kode ..02)</option>
-            </select>
+          <h2>Isi data</h2>
+          <div class="hbset">
+            <label class="f">Nama HB <input type="text" id="hbtabhub" autocomplete="off" placeholder="mis. FDCB10700"></label>
+            <label class="f">Tipe CQT
+              <select id="hbtype"><option value="reg">CQT Reguler</option><option value="hw">CQT Huawei</option></select>
+            </label>
+          </div>
+          <p class="msg" style="margin:10px 0 4px">Panjang kabel (m) per line, FAT 1 → FAT 4:</p>
+          <div id="hbtablebox">
+            <div class="tablewrap"><table class="hbtab">
+              <thead><tr><th>Line</th><th>FAT 1</th><th>FAT 2</th><th>FAT 3</th><th>FAT 4</th></tr></thead>
+              <tbody id="hbtab"><tr><th>A</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="3"></td></tr><tr><th>B</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="3"></td></tr><tr><th>C</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="3"></td></tr><tr><th>D</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="3"></td></tr><tr><th>E</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="3"></td></tr><tr><th>F</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="3"></td></tr><tr><th>G</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="3"></td></tr><tr><th>H</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="3"></td></tr></tbody>
+            </table></div>
+          </div>
+          <div class="boqgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+            <label class="f">HP <input type="number" id="boqhp" min="0" step="1" inputmode="numeric"></label>
+            <label class="f">Tiang 6/150 <input type="number" id="boqp6" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span id="boqp7lbl">Tiang 7/250</span> <input type="number" id="boqp7" min="0" step="1" inputmode="numeric"></label>
+            <label class="f" id="boqp7bwrap" hidden>Tiang 7/250 (0033) <input type="number" id="boqp7b" min="0" step="1" inputmode="numeric"></label>
+          </div>
+          <label class="drop boqfilebox" id="boqdrop" for="boqfile">
+            <input type="file" id="boqfile" accept=".xlsm,.xlsx">
+            <strong id="boqfname">Pilih file BOQ master (.xlsm)</strong>
+            <span>cukup sekali, disimpan di browser ini</span>
           </label>
         </fieldset>
-        <button type="submit" class="primary" id="hbgo" disabled>Buat</button>
-        <fieldset>
-          <h2>Data terbaca</h2>
+        <button type="submit" class="primary" id="hbgo" disabled>Proses</button>
+        <span id="hbtabgo" hidden></span>
+        <details class="hbmore"><summary>Lainnya</summary>
+          <div class="boqgrid">
+            <label class="f">Project Name <input type="text" id="boqproj" autocomplete="off"></label>
+            <label class="f">Project Ref. <input type="text" id="boqref" autocomplete="off"></label>
+            <label class="f">Date <input type="text" id="boqdate" autocomplete="off" placeholder="dd/mm/yyyy"></label>
+            <label class="f">Civil Work <select id="boqcivil"><option>AE</option><option>UG</option><option>MIX</option></select></label>
+            <label class="f">ADD Splitter <input type="number" id="boqsplit" min="0" step="1" inputmode="numeric"></label>
+            <label class="f">Line 1 perangkat <select id="hbsingle"><option value="sb">SUB BOX</option><option value="eb">END BOX</option></select></label>
+            <label class="f">Nama file <input type="text" id="hbbase" autocomplete="off" placeholder="mis. FXXXXX"></label>
+          </div>
+          <div class="chips"><button type="button" class="chip" id="hbtabclear">Kosongkan tabel</button><button type="button" class="chip" id="hbsample">Isi data contoh</button><button type="button" class="chip" id="hbtpl">Template Excel</button></div>
+          <label class="drop" id="hbdrop" for="hbfile" style="min-height:0;padding:10px;margin-top:8px">
+            <input type="file" id="hbfile" accept=".xlsx,.xlsm">
+            <strong id="hbfname">Pakai file Excel</strong>
+            <span>isinya masuk ke tabel</span>
+          </label>
+          <h2 style="margin-top:12px">Data terbaca</h2>
           <div class="tablewrap"><table>
             <thead><tr><th>Row</th><th>Line</th><th>FAT code</th><th>Panjang</th></tr></thead>
             <tbody id="hbrows"><tr><td colspan="4" class="empty">Belum ada data.</td></tr></tbody>
           </table></div>
           <p class="msg">Kode FAT dibuat otomatis dari nama HB: line A/B = S01, C/D = S02, E/F = S03, G/H = S04 (maks 8 line). Tiap line 2 atau 4 perangkat berurutan: isi PANJANG 1-2 atau PANJANG 1-4. Perangkat 01, 02, 03 = SUB BOX, yang terakhir = END BOX (line 2 perangkat: 01 SB, 02 EB). Line 1 perangkat: pilih SUB BOX / END BOX di atas. Format lama (PANJANG SB / EB, atau B LINE · C FAT CODE · I PANJANG) tetap terbaca.</p>
-        </fieldset>
+        </details>
       </form>
     </div>
 
     <div class="results">
       <div class="panel">
-        <div class="summary" id="hbsummary"><span class="source">Menunggu Python siap, lalu data contoh diproses otomatis.</span></div>
+        <div class="summary" id="hbsummary"><span class="source">Menunggu Python siap.</span></div>
       </div>
       <div class="panel">
         <h2>Preview</h2>
         <div class="preview" id="hbpreview"><div class="empty">Preview muncul di sini setelah diproses.</div></div>
       </div>
-      <div class="panel">
+      <div class="panel" id="boqpanel">
         <h2>Download</h2>
         <div class="dl" id="hbdl"><span class="note">File muncul di sini setelah diproses.</span></div>
+        <p class="msg" id="boqprecon" style="margin-bottom:0"></p>
+        <p class="msg" id="boqnote" style="margin:4px 0 0"></p>
+        <div id="boqmaster" class="msg" hidden></div>
+        <span id="boqsheet" hidden>QODN CQT</span>
+        <div id="boqtiangwrap" hidden><div id="boqtiang"></div></div>
+        <table hidden><tbody id="boqrows"></tbody></table>
+        <div id="boqdl" hidden><button type="button" id="boqgo" disabled>Isi BOQ</button></div>
       </div>
       <div class="panel" id="hbwarnpanel" hidden>
         <h2>Peringatan data</h2>
@@ -992,7 +1030,7 @@ worker.onmessage = (ev) => {
   if (m.type === "result" && m.fn === "hb_template") { busy = false; $("go").disabled = false; $("hbgo").disabled = false; setStatus("Siap", 100); hbSaveTemplate(m.result.xlsx); return; }
   if (m.type === "status") {
     setStatus(m.text, m.pct);
-    if (m.pct === 100 && !pyReady) { pyReady = true; $("go").disabled = false; $("hbgo").disabled = false; $("dwgo").disabled = false; if (opened.has("cmld")) run(); else if (opened.has("hb")) hbRun(); }
+    if (m.pct === 100 && !pyReady) { pyReady = true; setTimeout(boqRender, 0); $("go").disabled = false; $("hbgo").disabled = false; $("dwgo").disabled = false; if (opened.has("cmld")) run(); else if (opened.has("hb")) hbRun(); }
   } else if (m.type === "result") {
     busy = false; $("go").disabled = false; $("hbgo").disabled = false; setStatus("Siap", 100);
     if (m.fn === "process_hb") hbShow(m.result); else show(m.result);
@@ -1105,12 +1143,16 @@ $("form").addEventListener("submit", (e) => { e.preventDefault(); run(); });
 
 // ---- Diagram HB ----
 let hbInput = null, hbLast = null;
-async function hbLoadSample() {
-  const buf = new Uint8Array(await (await fetch("contoh_hb.json")).arrayBuffer());
-  hbInput = { bytes: buf, name: "contoh_hb.json", sample: true };
-  $("hbfname").textContent = "Contoh: FXXXXX";
-  $("hbbase").value = "";
-  hbRun();
+const HB_SAMPLE = { hub: "FXXXXX", rows: { A: ["62", "46", "", ""], B: ["32", "", "", ""], C: ["33", "68", "", ""], D: ["195", "54", "", ""], E: ["106", "61", "", ""], F: ["203", "203", "", ""] } };
+function hbTabFill(d) {
+  $("hbtabhub").value = d.hub || "";
+  $("hbtab").querySelectorAll("input").forEach((i) => { const r = (d.rows || {})[i.dataset.l]; i.value = r && r[+i.dataset.k] != null ? r[+i.dataset.k] : ""; });
+  hbTabSave();
+}
+function hbHasTable() { const d = hbTabData(); return !!d.hub && Object.values(d.rows).some((r) => r.some((v) => v !== "")); }
+function hbLoadSample(ev) {
+  // deferred: route() can call this before the rest of the script has initialised
+  setTimeout(() => { if (ev || !hbHasTable()) hbTabFill(HB_SAMPLE); hbTabRun(); }, 0);
 }
 try { const v = localStorage.getItem("tk-hb-single"); if (v && $("hbsingle").querySelector('option[value="' + v + '"]')) $("hbsingle").value = v; } catch (e) {}
 try { const v = localStorage.getItem("tk-hb-type"); if (v && $("hbtype").querySelector('option[value="' + v + '"]')) $("hbtype").value = v; } catch (e) {}
@@ -1120,13 +1162,13 @@ function hbRun() {
   if (!pyReady || busy || !hbInput) return;
   busy = true; $("hbgo").disabled = true; $("go").disabled = true; setStatus("Memproses…", 100);
   worker.postMessage({ type: "run", fn: "process_hb", id: ++runId, bytes: hbInput.bytes.slice(0), filename: hbInput.name,
-    options: { base: $("hbbase").value.trim() ? safeFile($("hbbase").value.trim()) : "", single_as: $("hbsingle").value, cqt_type: $("hbtype").value } });
+    options: { base: $("hbbase").value.trim() ? safeFile($("hbbase").value.trim()) : "", single_as: $("hbsingle").value, cqt_type: $("hbtype").value, cluster: $("boqproj").value.trim() } });
 }
 function hbShow(r) {
   hbLast = r;
   const sum = $("hbsummary"); sum.innerHTML = "";
   const src = document.createElement("span"); src.className = "source";
-  src.textContent = (hbInput.sample ? "Contoh: " : "File: ") + hbInput.name; sum.append(src);
+  src.textContent = hbInput.table ? "Tabel: " + (r.hub || "") : (hbInput.sample ? "Contoh: " : "File: ") + hbInput.name; sum.append(src);
   if (!r.ok) {
     sum.append(pill(r.log[r.log.length - 1] || "Gagal", "err"));
     $("hbpreview").innerHTML = '<div class="empty">Tidak ada preview. Periksa kolom B, C, dan I di Excel.</div>';
@@ -1148,7 +1190,14 @@ function hbShow(r) {
     tb.append(tr);
   }
   if (!r.items.length) tb.innerHTML = '<tr><td colspan="4" class="empty">Belum ada data.</td></tr>';
+  if (r.ok && hbInput && !hbInput.table) {
+    const rows = {};
+    for (const L of r.lines) rows[L.line] = [0, 1, 2, 3].map((k) => (L.devs && L.devs[k] && L.devs[k].len != null) ? String(+L.devs[k].len) : "");
+    hbTabFill({ hub: r.hub, rows });
+  }
   hbRenderDownloads(r);
+  boqRender();
+  if (r.ok) boqSchedule();
 }
 async function hbTakeFile(f) {
   if (!f) return;
@@ -1166,20 +1215,143 @@ $("hbfile").addEventListener("change", (e) => hbTakeFile(e.target.files[0]));
   d.addEventListener("drop", (e) => { e.preventDefault(); d.classList.remove("over"); hbTakeFile(e.dataTransfer.files[0]); });
 })();
 $("hbsample").addEventListener("click", hbLoadSample);
-$("hbform").addEventListener("submit", (e) => { e.preventDefault(); hbRun(); });
+$("hbform").addEventListener("submit", (e) => { e.preventDefault(); if (hbHasTable()) hbTabRun(); else hbRun(); });
 function hbDxfName() { return safeFile($("hbbase").value.trim() || $("hbbase").placeholder || "HB") + ".dxf"; }
-let hbUrl = null;
+let hbBlobs = [];
+function dlLink(name, data, main) {
+  const u = URL.createObjectURL(new Blob([data])); hbBlobs.push(u);
+  const a = document.createElement("a"); a.className = main ? "btn hero" : "btn"; a.href = u; a.download = name; a.textContent = name;
+  return a;
+}
 function hbRenderDownloads(r) {
   const box = $("hbdl"); box.innerHTML = "";
-  if (hbUrl) URL.revokeObjectURL(hbUrl);
+  hbBlobs.forEach((u) => URL.revokeObjectURL(u)); hbBlobs = [];
   if (!r.ok) { const n = document.createElement("span"); n.className = "note"; n.textContent = "Belum ada file."; box.append(n); return; }
-  hbUrl = URL.createObjectURL(new Blob([r.dxf]));
-  const a = document.createElement("a"); a.className = "btn hero"; a.href = hbUrl; a.textContent = "Save As DXF";
-  a.download = hbDxfName();
-  a.addEventListener("click", () => { a.download = hbDxfName(); });
-  box.append(a);
+  box.append(dlLink(hbDxfName(), r.dxf, false));
+  if (r.lb) box.append(dlLink(r.lb_name, r.lb, false));
 }
 
+// ---- table typed in the toolkit (same layout as the BOQ sheet) ----
+function hbTabData() {
+  const rows = {};
+  $("hbtab").querySelectorAll("input").forEach((i) => { (rows[i.dataset.l] = rows[i.dataset.l] || ["", "", "", ""])[+i.dataset.k] = i.value; });
+  return { hub: $("hbtabhub").value.trim(), rows };
+}
+function hbTabSave() { try { localStorage.setItem("tk-hb-tab", JSON.stringify(hbTabData())); } catch (e) {} }
+try { const d = JSON.parse(localStorage.getItem("tk-hb-tab") || "null");
+  if (d) { $("hbtabhub").value = d.hub || ""; $("hbtab").querySelectorAll("input").forEach((i) => { const r = (d.rows || {})[i.dataset.l]; if (r) i.value = r[+i.dataset.k] || ""; }); } } catch (e) {}
+function hbTabRun() {
+  const d = hbTabData();
+  if (!d.hub) { $("hbtabhub").focus(); $("hbfname").textContent = "Isi Nama HB dulu untuk tabel"; return; }
+  if (!Object.values(d.rows).some((r) => r.some((v) => v !== ""))) { $("hbfname").textContent = "Tabel masih kosong"; return; }
+  hbInput = { bytes: new TextEncoder().encode(JSON.stringify(d)), name: "tabel.json", sample: false, table: true };
+  $("hbfname").textContent = "Tabel: " + d.hub;
+  if (!$("hbbase").value.trim()) $("hbbase").placeholder = d.hub;
+  hbRun();
+}
+let hbTabTimer = null;
+$("hbtab").addEventListener("input", () => { hbTabSave(); clearTimeout(hbTabTimer); if (hbHasTable()) hbTabTimer = setTimeout(hbTabRun, 700); });
+$("hbtabhub").addEventListener("input", () => { hbTabSave(); clearTimeout(hbTabTimer); if (hbHasTable()) hbTabTimer = setTimeout(hbTabRun, 700); });
+$("hbtabgo").addEventListener("click", hbTabRun);
+$("hbtabclear").addEventListener("click", () => { $("hbtab").querySelectorAll("input").forEach((i) => i.value = ""); hbTabSave(); });
+// ---- BOQ CQT: fill sheet QODN CQT / QODN HW of the BOQ master ----
+const BOQ_PRECON = { reg: [[50, 38], [75, 63], [100, 88], [150, 138], [200, 188], [300, 288], [400, 388]],
+                     hw: [[50, 38], [80, 68], [100, 88], [150, 138], [180, 168], [200, 188], [250, 238], [300, 288]] };
+let boqMaster = null, boqLast = null;
+const boqPrecon = (len, t) => { if (len == null) return null; for (const [s, mx] of BOQ_PRECON[t]) if (len <= mx) return s; return 0; };
+function b64ToBytes(b) { const s = atob(b); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+function bytesToB64(u) { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+try { const n = localStorage.getItem("tk-boq-name"), b = localStorage.getItem("tk-boq-master"); if (n && b) boqMaster = { name: n, bytes: b64ToBytes(b) }; } catch (e) {}
+{ const d = new Date(); $("boqdate").value = String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + d.getFullYear(); }
+for (const id of ["boqhp", "boqsplit", "boqp6", "boqp7", "boqp7b", "boqproj", "boqref", "boqcivil"]) { try { const v = localStorage.getItem("tk-" + id); if (v != null) $(id).value = v; } catch (e) {}
+  $(id).addEventListener("input", () => { try { localStorage.setItem("tk-" + id, $(id).value); } catch (e) {} }); }
+async function boqTakeFile(f) {
+  if (!f) return;
+  if (!/\.(xlsm|xlsx)$/i.test(f.name)) { $("boqfname").textContent = "Pilih file .xlsm / .xlsx"; return; }
+  boqMaster = { name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) };
+  try { localStorage.setItem("tk-boq-master", bytesToB64(boqMaster.bytes)); localStorage.setItem("tk-boq-name", f.name); } catch (e) {}
+  boqRender();
+  boqSchedule();
+}
+$("boqfile").addEventListener("change", (e) => boqTakeFile(e.target.files[0]));
+(() => {
+  const d = $("boqdrop");
+  d.addEventListener("dragover", (e) => { e.preventDefault(); d.classList.add("over"); });
+  d.addEventListener("dragleave", () => d.classList.remove("over"));
+  d.addEventListener("drop", (e) => { e.preventDefault(); d.classList.remove("over"); boqTakeFile(e.dataTransfer.files[0]); });
+})();
+function boqRender() {
+  const t = $("hbtype").value, hw = t === "hw";
+  $("boqsheet").textContent = hw ? "QODN HW" : "QODN CQT";
+  $("boqp7lbl").textContent = hw ? "Tiang 7/250 (0029)" : "Tiang 7/250";
+  $("boqp7bwrap").hidden = !hw; $("boqtiangwrap").hidden = true;
+  $("boqfname").textContent = boqMaster ? boqMaster.name : "Pilih file BOQ master (.xlsm)";
+  const r = hbLast, ok = r && r.ok && r.lines && r.lines.length;
+  const tb = $("boqrows"); tb.innerHTML = "";
+  const count = {}; let over = 0;
+  if (ok) {
+    for (const L of r.lines) {
+      const tr = document.createElement("tr"), th = document.createElement("td"); th.textContent = L.line; tr.append(th);
+      for (let k = 0; k < 4; k++) {
+        const td = document.createElement("td"), d = (L.devs || [])[k];
+        if (d) { const p = boqPrecon(d.len, t); if (p) count[p] = (count[p] || 0) + 1; if (p === 0) { over++; td.className = "over"; }
+          td.textContent = d.len == null ? "-" : (+d.len) + "m → " + (p ? p + "M" : p === 0 ? "terlalu panjang" : "-"); }
+        else td.textContent = "";
+        tr.append(td);
+      }
+      tb.append(tr);
+    }
+    const box = $("boqtiang"), keep = {};
+    box.querySelectorAll("input").forEach((i) => keep[i.dataset.line] = i.value);
+    box.innerHTML = "";
+    for (const L of r.lines) {
+      const lb = document.createElement("label"); lb.className = "f"; lb.textContent = "Line " + L.line + " ";
+      const i = document.createElement("input"); i.type = "number"; i.min = "0"; i.step = "1"; i.dataset.line = L.line; i.value = keep[L.line] || "";
+      lb.append(i); box.append(lb);
+    }
+  } else tb.innerHTML = '<tr><td colspan="5" class="empty">Proses data CQT dulu.</td></tr>';
+  const sizes = Object.keys(count).map(Number).sort((a, b) => a - b);
+  $("boqprecon").textContent = ok ? "Precon: " + (sizes.map((s) => s + "M × " + count[s]).join(", ") || "-") + (over ? " · " + over + " segmen lebih dari " + BOQ_PRECON[t].at(-1)[1] + " m, cek lagi" : "") : "";
+  $("boqgo").disabled = !(ok && boqMaster && pyReady);
+  if (!boqMaster) $("boqnote").textContent = "Pilih file BOQ master supaya BOQ ikut dibuat.";
+}
+$("hbtype").addEventListener("change", boqRender);
+async function boqFill() {
+  if (!hbLast || !hbLast.ok || !boqMaster || !pyReady) return;
+  const t = $("hbtype").value, tiang = {};
+  $("boqtiang").querySelectorAll("input").forEach((i) => { if (i.value !== "") tiang[i.dataset.line] = i.value; });
+  const base = "BOQ_" + safeFile($("hbbase").value.trim() || $("hbbase").placeholder || hbLast.hub || "CQT");
+  $("boqgo").disabled = true; $("boqnote").textContent = "Mengisi BOQ…";
+  let r;
+  const pkgBase = safeFile($("hbbase").value.trim() || $("hbbase").placeholder || hbLast.hub || "CQT");
+  try { r = await callWorker("process_boq", boqMaster, { lines: hbLast.lines, cqt_type: t, base, pkg_base: pkgBase,
+    dxf_b64: hbLast.dxf ? bytesToB64(new Uint8Array(hbLast.dxf)) : "", dxf_name: hbDxfName(), lb_b64: hbLast.lb ? bytesToB64(new Uint8Array(hbLast.lb)) : "", lb_name: hbLast.lb_name || "", hp: $("boqhp").value, split: $("boqsplit").value,
+    header: { project: $("boqproj").value.trim(), ref: $("boqref").value.trim(), date: $("boqdate").value.trim(),
+      fdt: hbLast.hub || "", civil: $("boqcivil").value },
+    p6: $("boqp6").value, p7: $("boqp7").value, p7b: t === "hw" ? $("boqp7b").value : "", tiang: t === "hw" ? tiang : {} }); }
+  catch (e) { $("boqnote").textContent = "Gagal: " + e.message; $("boqgo").disabled = false; return; }
+  $("boqgo").disabled = false;
+  if (!r.ok) { $("boqnote").textContent = r.log[r.log.length - 1] || "Gagal"; return; }
+  boqLast = r;
+  const box = $("hbdl"); box.querySelectorAll(".boqsave").forEach((b) => b.remove());
+  if (r.package) { const pa = dlLink(r.package_name, r.package, true); pa.classList.add("boqsave"); pa.textContent = "Paket DXF + BOQ + LB (" + r.package_name + ")"; box.prepend(pa); }
+  const ba = dlLink(r.name, r.xlsm, false); ba.classList.add("boqsave"); box.append(ba);
+  const s = r.summary, mb = $("boqmaster");
+  if (s.master_rows && s.master_rows.length) {
+    mb.hidden = false; mb.innerHTML = "";
+    const dt = document.createElement("details"), sm = document.createElement("summary");
+    sm.textContent = "Isi MASTER LM (" + s.master_rows.length + " baris, sisanya disembunyikan)"; dt.append(sm);
+    const ul = document.createElement("ul"); ul.style.margin = "4px 0 0"; ul.style.paddingLeft = "18px";
+    for (const x of s.master_rows) { const li = document.createElement("li"); li.textContent = x.desc + " — " + (+x.qty); ul.append(li); }
+    dt.append(ul); mb.append(dt);
+  } else mb.hidden = true;
+  $("boqnote").textContent = "BOQ " + s.sheet + ": Hub Box 1 · Sub Box " + s.sb + " · End Box " + s.eb + " · kabel " + Math.round(s.total_len) + " m";
+}
+$("boqgo").addEventListener("click", boqFill);
+let boqTimer = null;
+function boqSchedule() { clearTimeout(boqTimer); boqTimer = setTimeout(boqFill, 500); }
+for (const id of ["boqhp", "boqsplit", "boqp6", "boqp7", "boqp7b", "boqproj", "boqref", "boqdate", "boqcivil"]) $(id).addEventListener("input", boqSchedule);
+$("boqproj").addEventListener("change", () => { if (hbHasTable()) hbTabRun(); });
 $("hbtpl").addEventListener("click", () => {
   if (!pyReady || busy) return;
   busy = true; setStatus("Membuat template…", 100);
