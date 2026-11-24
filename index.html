@@ -569,6 +569,17 @@ table.hbtab input { width: 100%; min-width: 56px; box-sizing: border-box; paddin
 table.hbtab th, table.hbtab td { padding: 3px 4px; }
 .hbset { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 @media (max-width: 520px) { .hbset { grid-template-columns: 1fr; } }
+.hbsec { margin-top: 14px; }
+.hbsec:first-of-type { margin-top: 6px; }
+.hbsec h3 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+.hbsechead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.hbsechead h3 { margin: 0; }
+.hbchips .chip { font-size: 11px; padding: 2px 8px; }
+.hbgrid4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-items: end; }
+.hbgrid4 label.f { margin: 0; }
+table.hbtab th:first-child { text-align: center; vertical-align: middle; width: 36px; }
+table.hbtab td, table.hbtab th { vertical-align: middle; }
+#hbform > button#hbgo { width: 100%; margin-top: 14px; }
 details.hbmore { margin-top: 12px; border-top: 1px solid var(--line, rgba(127,127,127,.25)); padding-top: 10px; }
 details.hbmore[open] summary { margin-bottom: 8px; }
 .boqfilebox { min-height: 0 !important; padding: 10px !important; margin-top: 10px; }
@@ -787,49 +798,61 @@ html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: c
       <form id="hbform" novalidate>
         <fieldset>
           <h2>Isi data</h2>
-          <div class="hbset">
-            <label class="f">Nama HB <input type="text" id="hbtabhub" autocomplete="off" placeholder="mis. FDCB10700"></label>
-            <label class="f">Tipe CQT
+          <div class="hbsec">
+            <div class="hbset">
+              <label class="f">Nama HB <input type="text" id="hbtabhub" autocomplete="off" placeholder="mis. FDCB10700"></label>
+              <label class="f">Tipe CQT
               <select id="hbtype"><option value="reg">CQT Reguler</option><option value="hw">CQT Huawei</option></select>
             </label>
+            </div>
           </div>
-          <p class="msg" style="margin:10px 0 4px">Panjang kabel (m) per line, FAT 1 → FAT 4:</p>
+          <div class="hbsec">
+            <h3>Info BOQ</h3>
+            <div class="hbgrid4">
+              <label class="f">Project Name <input type="text" id="boqproj" autocomplete="off"></label>
+              <label class="f">Project Ref. <input type="text" id="boqref" autocomplete="off"></label>
+              <label class="f">Date <input type="text" id="boqdate" autocomplete="off" placeholder="dd/mm/yyyy"></label>
+              <label class="f">Civil Work <select id="boqcivil"><option>AE</option><option>UG</option><option>MIX</option></select></label>
+            </div>
+          </div>
+          <div class="hbsec">
+            <div class="hbsechead"><h3>Panjang kabel (m)</h3><div class="chips hbchips"><button type="button" class="chip" id="hbtabclear">Kosongkan tabel</button><button type="button" class="chip" id="hbsample">Isi data contoh</button><button type="button" class="chip" id="hbtpl" hidden>Template Excel</button></div></div>
           <div id="hbtablebox">
             <div class="tablewrap"><table class="hbtab">
               <thead><tr><th>Line</th><th>FAT 1</th><th>FAT 2</th><th>FAT 3</th><th>FAT 4</th></tr></thead>
               <tbody id="hbtab"><tr><th>A</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="A" data-k="3"></td></tr><tr><th>B</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="B" data-k="3"></td></tr><tr><th>C</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="C" data-k="3"></td></tr><tr><th>D</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="D" data-k="3"></td></tr><tr><th>E</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="E" data-k="3"></td></tr><tr><th>F</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="F" data-k="3"></td></tr><tr><th>G</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="G" data-k="3"></td></tr><tr><th>H</th><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="0"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="1"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="2"></td><td><input type="number" min="0" step="1" inputmode="numeric" data-l="H" data-k="3"></td></tr></tbody>
             </table></div>
           </div>
-          <div class="boqgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-            <label class="f">HP <input type="number" id="boqhp" min="0" step="1" inputmode="numeric"></label>
-            <label class="f">Tiang 6/150 <input type="number" id="boqp6" min="0" step="1" inputmode="numeric"></label>
-            <label class="f"><span id="boqp7lbl">Tiang 7/250</span> <input type="number" id="boqp7" min="0" step="1" inputmode="numeric"></label>
-            <label class="f" id="boqp7bwrap" hidden>Tiang 7/250 (0033) <input type="number" id="boqp7b" min="0" step="1" inputmode="numeric"></label>
           </div>
-          <label class="drop boqfilebox" id="boqdrop" for="boqfile">
+          <div class="hbsec">
+            <h3>Material</h3>
+            <div class="hbgrid4">
+              <label class="f">HP <input type="number" id="boqhp" min="0" step="1" inputmode="numeric"></label>
+              <label class="f">Tiang 6/150 <input type="number" id="boqp6" min="0" step="1" inputmode="numeric"></label>
+              <label class="f"><span id="boqp7lbl">Tiang 7/250</span> <input type="number" id="boqp7" min="0" step="1" inputmode="numeric"></label>
+              <label class="f" id="boqp7bwrap" hidden>Tiang 7/250 (0033) <input type="number" id="boqp7b" min="0" step="1" inputmode="numeric"></label>
+              <label class="f">ADD Splitter <input type="number" id="boqsplit" min="0" step="1" inputmode="numeric"></label>
+            </div>
+          </div>
+          <div hidden><label class="drop boqfilebox" id="boqdrop" for="boqfile">
             <input type="file" id="boqfile" accept=".xlsm,.xlsx">
-            <strong id="boqfname">Pilih file BOQ master (.xlsm)</strong>
-            <span>cukup sekali, disimpan di browser ini</span>
+            <strong id="boqfname">BOQ master: bawaan</strong>
+            <span>opsional, ganti kalau master BOQ berubah</span>
+          </label>
+          <div class="chips" id="boqresetwrap" hidden><button type="button" class="chip" id="boqreset">Pakai BOQ master bawaan</button></div></div>
+          <label class="drop" id="hbdrop" for="hbfile" style="min-height:0;padding:10px;margin-top:8px" hidden>
+            <input type="file" id="hbfile" accept=".xlsx,.xlsm">
+            <strong id="hbfname">Pakai file Excel</strong>
+            <span>isinya masuk ke tabel</span>
           </label>
         </fieldset>
         <button type="submit" class="primary" id="hbgo" disabled>Proses</button>
         <span id="hbtabgo" hidden></span>
         <details class="hbmore"><summary>Lainnya</summary>
-          <div class="boqgrid">
-            <label class="f">Project Name <input type="text" id="boqproj" autocomplete="off"></label>
-            <label class="f">Project Ref. <input type="text" id="boqref" autocomplete="off"></label>
-            <label class="f">Date <input type="text" id="boqdate" autocomplete="off" placeholder="dd/mm/yyyy"></label>
-            <label class="f">Civil Work <select id="boqcivil"><option>AE</option><option>UG</option><option>MIX</option></select></label>
-            <label class="f">ADD Splitter <input type="number" id="boqsplit" min="0" step="1" inputmode="numeric"></label>
+          <div class="hbgrid4">
             <label class="f">Line 1 perangkat <select id="hbsingle"><option value="sb">SUB BOX</option><option value="eb">END BOX</option></select></label>
             <label class="f">Nama file <input type="text" id="hbbase" autocomplete="off" placeholder="mis. FXXXXX"></label>
           </div>
-          <div class="chips"><button type="button" class="chip" id="hbtabclear">Kosongkan tabel</button><button type="button" class="chip" id="hbsample">Isi data contoh</button><button type="button" class="chip" id="hbtpl">Template Excel</button></div>
-          <label class="drop" id="hbdrop" for="hbfile" style="min-height:0;padding:10px;margin-top:8px">
-            <input type="file" id="hbfile" accept=".xlsx,.xlsm">
-            <strong id="hbfname">Pakai file Excel</strong>
-            <span>isinya masuk ke tabel</span>
-          </label>
           <h2 style="margin-top:12px">Data terbaca</h2>
           <div class="tablewrap"><table>
             <thead><tr><th>Row</th><th>Line</th><th>FAT code</th><th>Panjang</th></tr></thead>
@@ -970,8 +993,8 @@ const MENU = {
     { id: "apd", name: "APD", desc: "", lead: "Semua berjalan di browser ini; file proyek tidak dikirim ke server.",
       children: [
         { id: "hb", name: "CMLD CQT", status: "ready",
-          desc: "Diagram HB ke tiap port: setiap line punya FAT SB dan EB lengkap dengan panjang kabel, langsung jadi DXF.",
-          io: ".xlsx (HB · LINE · PANJANG SB/EB) → .dxf" },
+          desc: "Isi tabel HB (line A–H, panjang tiap FAT), langsung jadi satu paket: diagram DXF, BOQ QODN terisi, dan LB.",
+          io: "Tabel HB → .zip (DXF · BOQ · LB)" },
         { id: "drawing-apd", view: "drawing", name: "DRAWING", status: "ready",
           desc: "File KMZ lapangan jadi DXF di atas peta jalan OpenStreetMap: tiang, strand + panjang bentang, kabel, icon Link Net, keterangan perangkat, koordinat UTM asli (pas di QGIS).",
           io: ".kmz → .dxf (peta)" },
@@ -1307,11 +1330,12 @@ $("hbtabclear").addEventListener("click", () => { $("hbtab").querySelectorAll("i
 // ---- BOQ CQT: fill sheet QODN CQT / QODN HW of the BOQ master ----
 const BOQ_PRECON = { reg: [[50, 38], [75, 63], [100, 88], [150, 138], [200, 188], [300, 288], [400, 388]],
                      hw: [[50, 38], [80, 68], [100, 88], [150, 138], [180, 168], [200, 188], [250, 238], [300, 288]] };
-let boqMaster = null, boqLast = null;
+const BOQ_BUILTIN = { name: "BOQ master bawaan", bytes: new Uint8Array(0), builtin: true };
+let boqMaster = BOQ_BUILTIN, boqLast = null;
 const boqPrecon = (len, t) => { if (len == null) return null; for (const [s, mx] of BOQ_PRECON[t]) if (len <= mx) return s; return 0; };
 function b64ToBytes(b) { const s = atob(b); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
 function bytesToB64(u) { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
-try { const n = localStorage.getItem("tk-boq-name"), b = localStorage.getItem("tk-boq-master"); if (n && b) boqMaster = { name: n, bytes: b64ToBytes(b) }; } catch (e) {}
+try { localStorage.removeItem("tk-boq-master"); localStorage.removeItem("tk-boq-name"); } catch (e) {}
 { const d = new Date(); $("boqdate").value = String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + d.getFullYear(); }
 for (const id of ["boqhp", "boqsplit", "boqp6", "boqp7", "boqp7b", "boqproj", "boqref", "boqcivil"]) { try { const v = localStorage.getItem("tk-" + id); if (v != null) $(id).value = v; } catch (e) {}
   $(id).addEventListener("input", () => { try { localStorage.setItem("tk-" + id, $(id).value); } catch (e) {} }); }
@@ -1319,11 +1343,11 @@ async function boqTakeFile(f) {
   if (!f) return;
   if (!/\.(xlsm|xlsx)$/i.test(f.name)) { $("boqfname").textContent = "Pilih file .xlsm / .xlsx"; return; }
   boqMaster = { name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) };
-  try { localStorage.setItem("tk-boq-master", bytesToB64(boqMaster.bytes)); localStorage.setItem("tk-boq-name", f.name); } catch (e) {}
   boqRender();
   boqSchedule();
 }
 $("boqfile").addEventListener("change", (e) => boqTakeFile(e.target.files[0]));
+$("boqreset").addEventListener("click", () => { boqMaster = BOQ_BUILTIN; try { localStorage.removeItem("tk-boq-master"); localStorage.removeItem("tk-boq-name"); } catch (e) {} $("boqfile").value = ""; boqRender(); boqSchedule(); });
 (() => {
   const d = $("boqdrop");
   d.addEventListener("dragover", (e) => { e.preventDefault(); d.classList.add("over"); });
@@ -1335,7 +1359,8 @@ function boqRender() {
   $("boqsheet").textContent = hw ? "QODN HW" : "QODN CQT";
   $("boqp7lbl").textContent = hw ? "Tiang 7/250 (0029)" : "Tiang 7/250";
   $("boqp7bwrap").hidden = !hw; $("boqtiangwrap").hidden = true;
-  $("boqfname").textContent = boqMaster ? boqMaster.name : "Pilih file BOQ master (.xlsm)";
+  $("boqfname").textContent = boqMaster.builtin ? "BOQ master: bawaan" : "BOQ master: " + boqMaster.name;
+  $("boqresetwrap").hidden = !!boqMaster.builtin;
   const r = hbLast, ok = r && r.ok && r.lines && r.lines.length;
   const tb = $("boqrows"); tb.innerHTML = "";
   const count = {}; let over = 0;
@@ -1363,7 +1388,6 @@ function boqRender() {
   const sizes = Object.keys(count).map(Number).sort((a, b) => a - b);
   $("boqprecon").textContent = ok ? "Precon: " + (sizes.map((s) => s + "M × " + count[s]).join(", ") || "-") + (over ? " · " + over + " segmen lebih dari " + BOQ_PRECON[t].at(-1)[1] + " m, cek lagi" : "") : "";
   $("boqgo").disabled = !(ok && boqMaster && pyReady);
-  if (!boqMaster) $("boqnote").textContent = "Pilih file BOQ master supaya BOQ ikut dibuat.";
 }
 $("hbtype").addEventListener("change", boqRender);
 async function boqFill() {
