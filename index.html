@@ -644,7 +644,7 @@ html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: c
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 if (window.TK_GATE) {
   const app = initializeApp({ apiKey: "AIzaSyBTcdYQxqnlGcd-Dm_GnQRrGBBVw1r7toc", authDomain: "toolkit-ftth.firebaseapp.com", projectId: "toolkit-ftth",
     storageBucket: "toolkit-ftth.firebasestorage.app", messagingSenderId: "451673237572", appId: "1:451673237572:web:c1be24d2cda9a5be8f7411" });
@@ -663,19 +663,35 @@ if (window.TK_GATE) {
     msg("Memeriksa akses " + u.email + "…");
     try {
       const email = (u.email || "").toLowerCase(), ref = doc(db, "users", u.uid);
-      const owner = OWNERS.includes(email);
+      const owner = OWNERS.includes(email), dev = deviceId(), devInfo = deviceInfo();
       let snap = await getDoc(ref), d = snap.exists() ? snap.data() : null;
       if (!d) {
         let inv = null; try { const s = await getDoc(doc(db, "invites", email)); if (s.exists() && s.data().role === "admin") inv = s.data(); } catch (e) {}
         d = { email, name: u.displayName || "", photo: u.photoURL || "", createdAt: serverTimestamp(),
-              status: owner || inv ? "approved" : "pending", role: owner || inv ? "admin" : "member" };
+              status: owner || inv ? "approved" : "pending", role: owner || inv ? "admin" : "member", device: dev, deviceInfo: devInfo };
         await setDoc(ref, d);
       }
       isAdmin = owner || (d.status === "approved" && d.role === "admin");
+      // member: 1 akun = 1 perangkat (admin bebas di mana saja)
+      if (!isAdmin) {
+        if (!d.device) { await updateDoc(ref, { device: dev, deviceInfo: devInfo }); d.device = dev; }
+        if (d.device !== dev) { msg("Akun " + email + " sudah terkunci di perangkat lain" + (d.deviceInfo ? " (" + d.deviceInfo + ")" : "") + ". Minta admin reset perangkat."); return; }
+      }
       if (owner || d.status === "approved") { unlock(); showBar(u); return; }
       msg(d.status === "rejected" ? "Akses untuk " + email + " ditolak admin." : "Halo " + (u.displayName || email) + ", akunmu menunggu persetujuan admin. Coba lagi nanti.");
     } catch (e) { msg("Tidak bisa memeriksa akses."); $("tkgateerr").textContent = e.code || e.message; }
   });
+  function deviceId() {
+    let id = ""; try { id = localStorage.getItem("tk-dev") || ""; } catch (e) {}
+    if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()); try { localStorage.setItem("tk-dev", id); } catch (e) {} }
+    return id;
+  }
+  function deviceInfo() {
+    const ua = navigator.userAgent;
+    const os = /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "Lainnya";
+    const br = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
+    return br + " · " + os;
+  }
   function showBar(u) {
     const bar = document.createElement("div"); bar.id = "tkbar";
     if (isAdmin) { const a = document.createElement("button"); a.type = "button"; a.textContent = "Admin"; a.onclick = openAdmin; bar.append(a); }
@@ -710,11 +726,13 @@ if (window.TK_GATE) {
         const st = document.createElement("span"); st.className = "tag " + d.status; st.textContent = { pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak" }[d.status] || d.status;
         const rl = document.createElement("span"); rl.className = "tag"; rl.textContent = d.role === "admin" ? "Admin" : "Member";
         r.append(w, st, rl);
+        if (d.role !== "admin") { const dv = document.createElement("span"); dv.className = "tag"; dv.textContent = d.device ? "Perangkat: " + (d.deviceInfo || "terkunci") : "Perangkat: belum"; r.append(dv); }
         const owner = OWNERS.includes((d.email || "").toLowerCase());
         if (!owner) {
           if (d.status !== "approved") r.append(btn("Setujui", async () => { await updateDoc(d.ref, { status: "approved" }); loadAdmin(); }, "ok"));
           if (d.status !== "rejected") r.append(btn(d.status === "approved" ? "Cabut" : "Tolak", async () => { await updateDoc(d.ref, { status: "rejected" }); loadAdmin(); }));
           r.append(btn(d.role === "admin" ? "Jadikan Member" : "Jadikan Admin", async () => { await updateDoc(d.ref, { role: d.role === "admin" ? "member" : "admin" }); loadAdmin(); }));
+          if (d.role !== "admin" && d.device) r.append(btn("Reset perangkat", async () => { await updateDoc(d.ref, { device: deleteField(), deviceInfo: deleteField() }); loadAdmin(); }));
           r.append(btn("Hapus", async () => { await deleteDoc(d.ref); loadAdmin(); }));
         }
         box.append(r);
