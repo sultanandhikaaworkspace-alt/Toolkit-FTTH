@@ -585,11 +585,10 @@ details.hbmore[open] summary { margin-bottom: 8px; }
 .boqfilebox { min-height: 0 !important; padding: 10px !important; margin-top: 10px; }
 </style>
 <script>
-/* simple username gate for the public GitHub Pages copy (a fence, not real security) */
+/* Firebase login gate for the GitHub Pages copy: Google sign-in + admin approval */
 (function () {
   var on = /github\.io$/.test(location.hostname) || /[?&]gate=1/.test(location.search);
-  var ok = false; try { ok = !!localStorage.getItem("tk-user"); } catch (e) {}
-  if (on && !ok) document.documentElement.classList.add("tklocked");
+  if (on) document.documentElement.classList.add("tklocked");
   window.TK_GATE = on;
 })();
 </script>
@@ -597,44 +596,132 @@ details.hbmore[open] summary { margin-bottom: 8px; }
 html.tklocked body > :not(#tkgate) { display: none !important; }
 #tkgate { display: none; }
 html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: center; justify-content: center; padding: 16px; background: var(--bg, #f3f4f8); z-index: 9999; }
-#tkgate form { width: 100%; max-width: 340px; background: var(--panel, #fff); border-radius: 14px; padding: 22px; box-shadow: 0 12px 40px -18px rgba(0,0,0,.35); font: 14px system-ui, sans-serif; color: inherit; }
-#tkgate h1 { font-size: 18px; margin: 0 0 4px; }
-#tkgate p { margin: 0 0 14px; opacity: .7; }
-#tkgate input { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; border: 1px solid rgba(127,127,127,.4); border-radius: 8px; background: transparent; color: inherit; }
-#tkgate button { margin-top: 12px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: #c8102e; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+#tkgate .box, #tkadmin .box { width: 100%; max-width: 360px; background: var(--panel, #fff); border-radius: 14px; padding: 22px; box-shadow: 0 12px 40px -18px rgba(0,0,0,.35); font: 14px system-ui, sans-serif; color: inherit; box-sizing: border-box; }
+#tkgate h1, #tkadmin h1 { font-size: 18px; margin: 0 0 4px; }
+#tkgate p { margin: 0 0 14px; opacity: .75; }
+.tkbtn { margin-top: 10px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: #c8102e; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.tkbtn.ghost { background: transparent; color: inherit; border: 1px solid rgba(127,127,127,.4); font-weight: 500; }
+.tkbtn:disabled { opacity: .5; cursor: default; }
 #tkgate .err { color: #c8102e; margin: 8px 0 0; min-height: 1em; opacity: 1; }
-#tklogout { position: fixed; right: 12px; bottom: 12px; z-index: 50; font: 12px system-ui, sans-serif; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(127,127,127,.35); background: var(--panel, #fff); color: inherit; cursor: pointer; opacity: .8; }
+#tkbar { position: fixed; right: 12px; bottom: 12px; z-index: 50; display: flex; gap: 6px; font: 12px system-ui, sans-serif; }
+#tkbar button { padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(127,127,127,.35); background: var(--panel, #fff); color: inherit; cursor: pointer; opacity: .85; font: inherit; }
+#tkadmin { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.55); display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow: auto; }
+#tkadmin[hidden] { display: none; }
+#tkadmin .box { max-width: 680px; }
+#tkadmin h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; margin: 18px 0 8px; }
+#tkadmin .row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(127,127,127,.2); flex-wrap: wrap; }
+#tkadmin .row .who { flex: 1 1 200px; min-width: 0; word-break: break-all; }
+#tkadmin .row .who small { display: block; opacity: .65; }
+#tkadmin .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(127,127,127,.4); }
+#tkadmin .tag.pending { border-color: #d89a00; color: #d89a00; }
+#tkadmin .tag.approved { border-color: #1a9a55; color: #1a9a55; }
+#tkadmin .tag.rejected { border-color: #c8102e; color: #c8102e; }
+#tkadmin .row button, #tkadmin .add button { padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(127,127,127,.4); background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 12px; }
+#tkadmin .row button.ok { background: #1a9a55; border-color: #1a9a55; color: #fff; }
+#tkadmin .add { display: flex; gap: 8px; flex-wrap: wrap; }
+#tkadmin .add input, #tkadmin .add select { flex: 1 1 180px; padding: 8px 10px; font: inherit; border: 1px solid rgba(127,127,127,.4); border-radius: 8px; background: transparent; color: inherit; }
+#tkadmin .add select { flex: 0 0 auto; }
+#tkadmin .note { font-size: 12px; opacity: .65; margin: 6px 0 0; }
 </style>
 </head>
 <body>
-<div id="tkgate"><form id="tkgateform" autocomplete="on">
+<div id="tkgate"><div class="box">
   <h1>Toolkit FTTH</h1>
-  <p>Masukkan username untuk membuka.</p>
-  <input id="tkgateuser" name="username" autocomplete="username" placeholder="Username" autofocus>
-  <button type="submit">Masuk</button>
+  <p id="tkgatemsg">Memeriksa login…</p>
+  <button type="button" class="tkbtn" id="tkgatein" hidden>Masuk dengan Google</button>
+  <button type="button" class="tkbtn ghost" id="tkgateout" hidden>Keluar / ganti akun</button>
   <p class="err" id="tkgateerr"></p>
-</form></div>
-<script>
-(function () {
-  var USERS = ["382a287153afde9d2f0942fffc8890f6743c720d10f298ca20597c9bd7ca9ebb", "9a0a02157482ed8fd9c68f35da29e6c0073c3d907a84c2ae1e6c914528da007e", "db42328112177c2d6f2f6ca7f33c8e81084b8ff3e14202254137e22673bce2c8"];   // sha-256 of the lower-case username
-  async function sha(t) { var b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(function (x) { return x.toString(16).padStart(2, "0"); }).join(""); }
-  document.getElementById("tkgateform").addEventListener("submit", async function (e) {
-    e.preventDefault();
-    var u = document.getElementById("tkgateuser").value.trim().toLowerCase();
-    if (u && USERS.indexOf(await sha(u)) >= 0) {
-      try { localStorage.setItem("tk-user", u); } catch (er) {}
-      document.documentElement.classList.remove("tklocked");
-      location.reload();
-    } else document.getElementById("tkgateerr").textContent = "Username tidak terdaftar.";
+</div></div>
+<div id="tkadmin" hidden><div class="box">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1>Admin</h1><button type="button" class="tkbtn ghost" id="tkadminclose" style="width:auto;margin:0;padding:6px 12px">Tutup</button></div>
+  <h2>Tambah email (langsung disetujui)</h2>
+  <form class="add" id="tkinviteform"><input type="email" id="tkinvitemail" placeholder="nama@gmail.com" required><select id="tkinviterole"><option value="member">Member</option><option value="admin">Admin</option></select><button type="submit">Tambah</button></form>
+  <p class="note">Orang dengan email ini langsung bisa masuk saat login pertama kali.</p>
+  <div id="tkinvites"></div>
+  <h2>Pengguna</h2>
+  <div id="tkusers"><p class="note">Memuat…</p></div>
+</div></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+if (window.TK_GATE) {
+  const app = initializeApp({ apiKey: "AIzaSyBTcdYQxqnlGcd-Dm_GnQRrGBBVw1r7toc", authDomain: "toolkit-ftth.firebaseapp.com", projectId: "toolkit-ftth",
+    storageBucket: "toolkit-ftth.firebasestorage.app", messagingSenderId: "451673237572", appId: "1:451673237572:web:c1be24d2cda9a5be8f7411" });
+  const OWNERS = ["sultan.andhikaaworkspace@gmail.com", "nurfajriatuzzahra@gmail.com", "maulanafahrozi99@gmail.com"];   // must match the Firestore rules
+  const auth = getAuth(app), db = getFirestore(app), $ = (id) => document.getElementById(id);
+  const msg = (t) => { $("tkgatemsg").textContent = t; };
+  const lock = () => document.documentElement.classList.add("tklocked");
+  const unlock = () => document.documentElement.classList.remove("tklocked");
+  $("tkgatein").onclick = async () => { $("tkgateerr").textContent = ""; try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { if (e.code !== "auth/popup-closed-by-user") $("tkgateerr").textContent = "Gagal masuk: " + (e.code || e.message); } };
+  $("tkgateout").onclick = () => signOut(auth);
+  let isAdmin = false;
+  onAuthStateChanged(auth, async (u) => {
+    $("tkbar")?.remove(); lock();
+    $("tkgatein").hidden = !!u; $("tkgateout").hidden = !u; $("tkgateerr").textContent = "";
+    if (!u) { msg("Masuk pakai akun Google. Akses perlu disetujui admin."); return; }
+    msg("Memeriksa akses " + u.email + "…");
+    try {
+      const email = (u.email || "").toLowerCase(), ref = doc(db, "users", u.uid);
+      const owner = OWNERS.includes(email);
+      let snap = await getDoc(ref), d = snap.exists() ? snap.data() : null;
+      if (!d) {
+        let inv = null; try { const s = await getDoc(doc(db, "invites", email)); if (s.exists()) inv = s.data(); } catch (e) {}
+        d = { email, name: u.displayName || "", photo: u.photoURL || "", createdAt: serverTimestamp(),
+              status: owner || inv ? "approved" : "pending", role: owner ? "admin" : (inv && inv.role === "admin" ? "admin" : "member") };
+        await setDoc(ref, d);
+      }
+      isAdmin = owner || (d.status === "approved" && d.role === "admin");
+      if (owner || d.status === "approved") { unlock(); showBar(u); return; }
+      msg(d.status === "rejected" ? "Akses untuk " + email + " ditolak admin." : "Halo " + (u.displayName || email) + ", akunmu menunggu persetujuan admin. Coba lagi nanti.");
+    } catch (e) { msg("Tidak bisa memeriksa akses."); $("tkgateerr").textContent = e.code || e.message; }
   });
-  if (window.TK_GATE && !document.documentElement.classList.contains("tklocked")) {
-    var b = document.createElement("button"); b.id = "tklogout"; b.type = "button";
-    var who = ""; try { who = localStorage.getItem("tk-user") || ""; } catch (er) {}
-    b.textContent = "Keluar" + (who ? " (" + who + ")" : "");
-    b.onclick = function () { try { localStorage.removeItem("tk-user"); } catch (er) {} location.reload(); };
-    document.addEventListener("DOMContentLoaded", function () { document.body.append(b); });
+  function showBar(u) {
+    const bar = document.createElement("div"); bar.id = "tkbar";
+    if (isAdmin) { const a = document.createElement("button"); a.type = "button"; a.textContent = "Admin"; a.onclick = openAdmin; bar.append(a); }
+    const o = document.createElement("button"); o.type = "button"; o.textContent = "Keluar (" + (u.displayName || u.email).split(" ")[0] + ")"; o.onclick = () => signOut(auth); bar.append(o);
+    document.body.append(bar);
   }
-})();
+  $("tkadminclose").onclick = () => { $("tkadmin").hidden = true; };
+  $("tkadmin").addEventListener("click", (e) => { if (e.target.id === "tkadmin") $("tkadmin").hidden = true; });
+  $("tkinviteform").addEventListener("submit", async (e) => {
+    e.preventDefault(); const em = $("tkinvitemail").value.trim().toLowerCase(); if (!em) return;
+    try { await setDoc(doc(db, "invites", em), { role: $("tkinviterole").value, by: auth.currentUser.email, at: serverTimestamp() });
+      // if this person already signed up and is waiting, approve them now
+      const us = await getDocs(collection(db, "users")); for (const s of us.docs) if ((s.data().email || "").toLowerCase() === em) await updateDoc(s.ref, { status: "approved", role: $("tkinviterole").value });
+      $("tkinvitemail").value = ""; loadAdmin(); } catch (er) { alertNote("Gagal menambah: " + (er.code || er.message)); }
+  });
+  function alertNote(t) { const p = document.createElement("p"); p.className = "note"; p.style.color = "#c8102e"; p.textContent = t; $("tkinvites").prepend(p); }
+  function openAdmin() { $("tkadmin").hidden = false; loadAdmin(); }
+  const btn = (t, f, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; if (cls) b.className = cls; b.onclick = f; return b; };
+  async function loadAdmin() {
+    const inv = $("tkinvites"), box = $("tkusers"); inv.innerHTML = ""; box.innerHTML = '<p class="note">Memuat…</p>';
+    try {
+      const is = await getDocs(collection(db, "invites"));
+      for (const s of is.docs) { const r = document.createElement("div"); r.className = "row";
+        r.innerHTML = '<div class="who"></div><span class="tag"></span>'; r.querySelector(".who").textContent = s.id; r.querySelector(".tag").textContent = s.data().role === "admin" ? "Admin" : "Member";
+        r.append(btn("Hapus", async () => { await deleteDoc(s.ref); loadAdmin(); })); inv.append(r); }
+      const us = await getDocs(collection(db, "users")); const rows = us.docs.map((s) => ({ ref: s.ref, ...s.data() }));
+      const order = { pending: 0, approved: 1, rejected: 2 }; rows.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3) || (a.email || "").localeCompare(b.email || ""));
+      box.innerHTML = rows.length ? "" : '<p class="note">Belum ada.</p>';
+      for (const d of rows) {
+        const r = document.createElement("div"); r.className = "row";
+        const w = document.createElement("div"); w.className = "who"; w.textContent = d.name || d.email; const sm = document.createElement("small"); sm.textContent = d.email; w.append(sm);
+        const st = document.createElement("span"); st.className = "tag " + d.status; st.textContent = { pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak" }[d.status] || d.status;
+        const rl = document.createElement("span"); rl.className = "tag"; rl.textContent = d.role === "admin" ? "Admin" : "Member";
+        r.append(w, st, rl);
+        const owner = OWNERS.includes((d.email || "").toLowerCase());
+        if (!owner) {
+          if (d.status !== "approved") r.append(btn("Setujui", async () => { await updateDoc(d.ref, { status: "approved" }); loadAdmin(); }, "ok"));
+          if (d.status !== "rejected") r.append(btn(d.status === "approved" ? "Cabut" : "Tolak", async () => { await updateDoc(d.ref, { status: "rejected" }); loadAdmin(); }));
+          r.append(btn(d.role === "admin" ? "Jadikan Member" : "Jadikan Admin", async () => { await updateDoc(d.ref, { role: d.role === "admin" ? "member" : "admin" }); loadAdmin(); }));
+          r.append(btn("Hapus", async () => { await deleteDoc(d.ref); loadAdmin(); }));
+        }
+        box.append(r);
+      }
+    } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "note"; p.textContent = "Gagal memuat: " + (e.code || e.message); box.append(p); }
+  }
+}
 </script>
 
 <div class="wrap">
