@@ -603,8 +603,7 @@ html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: c
 .tkbtn.ghost { background: transparent; color: inherit; border: 1px solid rgba(127,127,127,.4); font-weight: 500; }
 .tkbtn:disabled { opacity: .5; cursor: default; }
 #tkgate .err { color: #c8102e; margin: 8px 0 0; min-height: 1em; opacity: 1; }
-#tkbar { position: fixed; right: 12px; bottom: 12px; z-index: 50; display: flex; gap: 6px; font: 12px system-ui, sans-serif; }
-#tkbar button { padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(127,127,127,.35); background: var(--panel, #fff); color: inherit; cursor: pointer; opacity: .85; font: inherit; }
+#tkbar { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 #tkadmin { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.55); display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow: auto; }
 #tkadmin[hidden] { display: none; }
 #tkadmin .box { max-width: 680px; }
@@ -693,10 +692,10 @@ if (window.TK_GATE) {
     return br + " · " + os;
   }
   function showBar(u) {
-    const bar = document.createElement("div"); bar.id = "tkbar";
-    if (isAdmin) { const a = document.createElement("button"); a.type = "button"; a.textContent = "Admin"; a.onclick = openAdmin; bar.append(a); }
-    const o = document.createElement("button"); o.type = "button"; o.textContent = "Keluar (" + (u.displayName || u.email).split(" ")[0] + ")"; o.onclick = () => signOut(auth); bar.append(o);
-    document.body.append(bar);
+    const bar = document.createElement("span"); bar.id = "tkbar";
+    if (isAdmin) { const a = document.createElement("button"); a.type = "button"; a.className = "skinbtn"; a.textContent = "Admin panel"; a.onclick = openAdmin; bar.append(a); }
+    const o = document.createElement("button"); o.type = "button"; o.className = "skinbtn"; o.textContent = "Keluar (" + (u.displayName || u.email).split(" ")[0] + ")"; o.onclick = () => signOut(auth); bar.append(o);
+    const sk = document.getElementById("skinbtn"); if (sk) sk.after(bar); else document.body.append(bar);
   }
   $("tkadminclose").onclick = () => { $("tkadmin").hidden = true; };
   $("tkadmin").addEventListener("click", (e) => { if (e.target.id === "tkadmin") $("tkadmin").hidden = true; });
