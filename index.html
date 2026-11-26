@@ -634,9 +634,9 @@ html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: c
 </div></div>
 <div id="tkadmin" hidden><div class="box">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1>Admin</h1><button type="button" class="tkbtn ghost" id="tkadminclose" style="width:auto;margin:0;padding:6px 12px">Tutup</button></div>
-  <h2>Tambah email (langsung disetujui)</h2>
-  <form class="add" id="tkinviteform"><input type="email" id="tkinvitemail" placeholder="nama@gmail.com" required><select id="tkinviterole"><option value="member">Member</option><option value="admin">Admin</option></select><button type="submit">Tambah</button></form>
-  <p class="note">Orang dengan email ini langsung bisa masuk saat login pertama kali.</p>
+  <h2>Tambah admin</h2>
+  <form class="add" id="tkinviteform"><input type="email" id="tkinvitemail" placeholder="nama@gmail.com" required><button type="submit">Tambah</button></form>
+  <p class="note">Email ini jadi admin saat login pertama kali. Member selalu perlu disetujui admin.</p>
   <div id="tkinvites"></div>
   <h2>Pengguna</h2>
   <div id="tkusers"><p class="note">Memuat…</p></div>
@@ -666,9 +666,9 @@ if (window.TK_GATE) {
       const owner = OWNERS.includes(email);
       let snap = await getDoc(ref), d = snap.exists() ? snap.data() : null;
       if (!d) {
-        let inv = null; try { const s = await getDoc(doc(db, "invites", email)); if (s.exists()) inv = s.data(); } catch (e) {}
+        let inv = null; try { const s = await getDoc(doc(db, "invites", email)); if (s.exists() && s.data().role === "admin") inv = s.data(); } catch (e) {}
         d = { email, name: u.displayName || "", photo: u.photoURL || "", createdAt: serverTimestamp(),
-              status: owner || inv ? "approved" : "pending", role: owner ? "admin" : (inv && inv.role === "admin" ? "admin" : "member") };
+              status: owner || inv ? "approved" : "pending", role: owner || inv ? "admin" : "member" };
         await setDoc(ref, d);
       }
       isAdmin = owner || (d.status === "approved" && d.role === "admin");
@@ -686,9 +686,9 @@ if (window.TK_GATE) {
   $("tkadmin").addEventListener("click", (e) => { if (e.target.id === "tkadmin") $("tkadmin").hidden = true; });
   $("tkinviteform").addEventListener("submit", async (e) => {
     e.preventDefault(); const em = $("tkinvitemail").value.trim().toLowerCase(); if (!em) return;
-    try { await setDoc(doc(db, "invites", em), { role: $("tkinviterole").value, by: auth.currentUser.email, at: serverTimestamp() });
+    try { await setDoc(doc(db, "invites", em), { role: "admin", by: auth.currentUser.email, at: serverTimestamp() });
       // if this person already signed up and is waiting, approve them now
-      const us = await getDocs(collection(db, "users")); for (const s of us.docs) if ((s.data().email || "").toLowerCase() === em) await updateDoc(s.ref, { status: "approved", role: $("tkinviterole").value });
+      const us = await getDocs(collection(db, "users")); for (const s of us.docs) if ((s.data().email || "").toLowerCase() === em) await updateDoc(s.ref, { status: "approved", role: "admin" });
       $("tkinvitemail").value = ""; loadAdmin(); } catch (er) { alertNote("Gagal menambah: " + (er.code || er.message)); }
   });
   function alertNote(t) { const p = document.createElement("p"); p.className = "note"; p.style.color = "#c8102e"; p.textContent = t; $("tkinvites").prepend(p); }
@@ -698,8 +698,8 @@ if (window.TK_GATE) {
     const inv = $("tkinvites"), box = $("tkusers"); inv.innerHTML = ""; box.innerHTML = '<p class="note">Memuat…</p>';
     try {
       const is = await getDocs(collection(db, "invites"));
-      for (const s of is.docs) { const r = document.createElement("div"); r.className = "row";
-        r.innerHTML = '<div class="who"></div><span class="tag"></span>'; r.querySelector(".who").textContent = s.id; r.querySelector(".tag").textContent = s.data().role === "admin" ? "Admin" : "Member";
+      for (const s of is.docs) { if (s.data().role !== "admin") continue; const r = document.createElement("div"); r.className = "row";
+        r.innerHTML = '<div class="who"></div><span class="tag"></span>'; r.querySelector(".who").textContent = s.id; r.querySelector(".tag").textContent = "Admin";
         r.append(btn("Hapus", async () => { await deleteDoc(s.ref); loadAdmin(); })); inv.append(r); }
       const us = await getDocs(collection(db, "users")); const rows = us.docs.map((s) => ({ ref: s.ref, ...s.data() }));
       const order = { pending: 0, approved: 1, rejected: 2 }; rows.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3) || (a.email || "").localeCompare(b.email || ""));
