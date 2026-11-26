@@ -621,6 +621,9 @@ html.tklocked #tkgate { display: flex; position: fixed; inset: 0; align-items: c
 #tkadmin .add input, #tkadmin .add select { flex: 1 1 180px; padding: 8px 10px; font: inherit; border: 1px solid rgba(127,127,127,.4); border-radius: 8px; background: transparent; color: inherit; }
 #tkadmin .add select { flex: 0 0 auto; }
 #tkadmin .note { font-size: 12px; opacity: .65; margin: 6px 0 0; }
+#tkadmin .tperm { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 12px; padding: 8px 10px; border: 1px dashed rgba(127,127,127,.4); border-radius: 8px; font-size: 13px; }
+#tkadmin .tperm label { display: flex; gap: 6px; align-items: center; }
+#tkadmin .tperm .act { grid-column: 1 / -1; display: flex; gap: 6px; }
 </style>
 </head>
 <body>
@@ -676,7 +679,12 @@ if (window.TK_GATE) {
         if (!d.device) { await updateDoc(ref, { device: dev, deviceInfo: devInfo }); d.device = dev; }
         if (d.device !== dev) { msg("Akun " + email + " sudah terkunci di perangkat lain" + (d.deviceInfo ? " (" + d.deviceInfo + ")" : "") + ". Minta admin reset perangkat."); return; }
       }
-      if (owner || d.status === "approved") { unlock(); showBar(u); return; }
+      if (owner || d.status === "approved") {
+        window.TK_ALLOWED = !isAdmin && Array.isArray(d.tools) ? d.tools : null;
+        unlock(); showBar(u); if (typeof route === "function") route();
+        updateDoc(ref, { lastSeen: serverTimestamp() }).catch(() => {});
+        return;
+      }
       msg(d.status === "rejected" ? "Akses untuk " + email + " ditolak admin." : "Halo " + (u.displayName || email) + ", akunmu menunggu persetujuan admin. Coba lagi nanti.");
     } catch (e) { msg("Tidak bisa memeriksa akses."); $("tkgateerr").textContent = e.code || e.message; }
   });
@@ -693,7 +701,7 @@ if (window.TK_GATE) {
   }
   function showBar(u) {
     const bar = document.createElement("span"); bar.id = "tkbar";
-    if (isAdmin) { const a = document.createElement("button"); a.type = "button"; a.className = "skinbtn"; a.textContent = "Admin panel"; a.onclick = openAdmin; bar.append(a); }
+    if (isAdmin) { const a = document.createElement("button"); a.type = "button"; a.className = "skinbtn"; a.id = "tkadminbtn"; a.textContent = "Admin panel"; a.onclick = openAdmin; bar.append(a); refreshBadge(); }
     const o = document.createElement("button"); o.type = "button"; o.className = "skinbtn"; o.textContent = "Keluar (" + (u.displayName || u.email).split(" ")[0] + ")"; o.onclick = () => signOut(auth); bar.append(o);
     const sk = document.getElementById("skinbtn"); if (sk) sk.after(bar); else document.body.append(bar);
   }
@@ -707,6 +715,24 @@ if (window.TK_GATE) {
       $("tkinvitemail").value = ""; loadAdmin(); } catch (er) { alertNote("Gagal menambah: " + (er.code || er.message)); }
   });
   function alertNote(t) { const p = document.createElement("p"); p.className = "note"; p.style.color = "#c8102e"; p.textContent = t; $("tkinvites").prepend(p); }
+  async function refreshBadge(rows) {
+    try {
+      if (!rows) rows = (await getDocs(collection(db, "users"))).docs.map((s) => s.data());
+      const n = rows.filter((d) => d.status === "pending").length, b = $("tkadminbtn");
+      if (b) b.textContent = "Admin panel" + (n ? " (" + n + ")" : "");
+    } catch (e) {}
+  }
+  function ago(ts) {
+    if (!ts || !ts.toMillis) return "belum pernah";
+    const m = Math.round((Date.now() - ts.toMillis()) / 60000);
+    if (m < 2) return "baru saja"; if (m < 60) return m + " menit lalu";
+    const h = Math.round(m / 60); if (h < 24) return h + " jam lalu";
+    const dd = Math.round(h / 24); return dd < 30 ? dd + " hari lalu" : ts.toDate().toLocaleDateString("id-ID");
+  }
+  function toolList() {   // ready tools from the menu, grouped by ABD / APD
+    const out = []; const walk = (n, grp) => (n.children || []).forEach((c) => c.children ? walk(c, c.name) : (c.status === "ready" && out.push({ id: c.id, name: (grp ? grp + " · " : "") + c.name })));
+    try { walk(MENU, ""); } catch (e) {} return out;
+  }
   function openAdmin() { $("tkadmin").hidden = false; loadAdmin(); }
   const btn = (t, f, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; if (cls) b.className = cls; b.onclick = f; return b; };
   async function loadAdmin() {
@@ -716,7 +742,7 @@ if (window.TK_GATE) {
       for (const s of is.docs) { if (s.data().role !== "admin") continue; const r = document.createElement("div"); r.className = "row";
         r.innerHTML = '<div class="who"></div><span class="tag"></span>'; r.querySelector(".who").textContent = s.id; r.querySelector(".tag").textContent = "Admin";
         r.append(btn("Hapus", async () => { await deleteDoc(s.ref); loadAdmin(); })); inv.append(r); }
-      const us = await getDocs(collection(db, "users")); const rows = us.docs.map((s) => ({ ref: s.ref, ...s.data() }));
+      const us = await getDocs(collection(db, "users")); const rows = us.docs.map((s) => ({ ref: s.ref, ...s.data() })); refreshBadge(rows);
       const order = { pending: 0, approved: 1, rejected: 2 }; rows.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3) || (a.email || "").localeCompare(b.email || ""));
       box.innerHTML = rows.length ? "" : '<p class="note">Belum ada.</p>';
       for (const d of rows) {
@@ -724,6 +750,7 @@ if (window.TK_GATE) {
         const w = document.createElement("div"); w.className = "who"; w.textContent = d.name || d.email; const sm = document.createElement("small"); sm.textContent = d.email; w.append(sm);
         const st = document.createElement("span"); st.className = "tag " + d.status; st.textContent = { pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak" }[d.status] || d.status;
         const rl = document.createElement("span"); rl.className = "tag"; rl.textContent = d.role === "admin" ? "Admin" : "Member";
+        const ls = document.createElement("small"); ls.style.display = "block"; ls.style.opacity = ".65"; ls.textContent = "Aktif: " + ago(d.lastSeen); w.append(ls);
         r.append(w, st, rl);
         if (d.role !== "admin") { const dv = document.createElement("span"); dv.className = "tag"; dv.textContent = d.device ? "Perangkat: " + (d.deviceInfo || "terkunci") : "Perangkat: belum"; r.append(dv); }
         const owner = OWNERS.includes((d.email || "").toLowerCase());
@@ -731,6 +758,19 @@ if (window.TK_GATE) {
           if (d.status !== "approved") r.append(btn("Setujui", async () => { await updateDoc(d.ref, { status: "approved" }); loadAdmin(); }, "ok"));
           if (d.status !== "rejected") r.append(btn(d.status === "approved" ? "Cabut" : "Tolak", async () => { await updateDoc(d.ref, { status: "rejected" }); loadAdmin(); }));
           r.append(btn(d.role === "admin" ? "Jadikan Member" : "Jadikan Admin", async () => { await updateDoc(d.ref, { role: d.role === "admin" ? "member" : "admin" }); loadAdmin(); }));
+          if (d.role !== "admin") {
+            const all = toolList(), cur = Array.isArray(d.tools) ? d.tools : null;
+            r.append(btn("Tools: " + (cur ? cur.length + "/" + all.length : "semua"), () => {
+              const old = r.querySelector(".tperm"); if (old) { old.remove(); return; }
+              const pn = document.createElement("div"); pn.className = "tperm";
+              for (const t of all) { const lb = document.createElement("label"); const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = t.id; cb.checked = !cur || cur.includes(t.id); lb.append(cb, document.createTextNode(t.name)); pn.append(lb); }
+              const act = document.createElement("div"); act.className = "act";
+              act.append(btn("Simpan", async () => { const sel = [...pn.querySelectorAll("input:checked")].map((c) => c.value);
+                await updateDoc(d.ref, { tools: sel.length === all.length ? deleteField() : sel }); loadAdmin(); }, "ok"),
+                btn("Semua", () => pn.querySelectorAll("input").forEach((c) => c.checked = true)), btn("Kosongkan", () => pn.querySelectorAll("input").forEach((c) => c.checked = false)));
+              pn.append(act); r.append(pn);
+            }));
+          }
           if (d.role !== "admin" && d.device) r.append(btn("Reset perangkat", async () => { await updateDoc(d.ref, { device: deleteField(), deviceInfo: deleteField() }); loadAdmin(); }));
           r.append(btn("Hapus", async () => { await deleteDoc(d.ref); loadAdmin(); }));
         }
@@ -1133,6 +1173,12 @@ function countTools(n) {
   return { ready, plan };
 }
 
+// tools a member may use (set by the login gate; null = all)
+function tkAllowed(t) {
+  const a = window.TK_ALLOWED; if (!a) return true;
+  if (t.children) return t.children.some((c) => c.children ? tkAllowed(c) : c.status === "ready" && a.includes(c.id));
+  return t.status !== "ready" || a.includes(t.id);
+}
 function renderGroup(g) {
   $("gtitle").textContent = g.name;
   $("glead").textContent = g.lead || "";
@@ -1143,6 +1189,7 @@ function renderGroup(g) {
     box.append(e); return;
   }
   for (const t of g.children) {
+    if (!tkAllowed(t)) continue;
     const group = isGroup(t), ready = group || t.status === "ready";
     const el = document.createElement(ready ? "a" : "div");
     el.className = "tool" + (ready ? "" : " soon");
@@ -1165,7 +1212,8 @@ function renderGroup(g) {
 
 function route() {
   let node = NODES[location.hash.slice(1)] || MENU;
-  if (!isGroup(node) && (node.status !== "ready" || node.href)) node = PARENT[node.id];
+  if (!isGroup(node) && (node.status !== "ready" || node.href || !tkAllowed(node))) node = PARENT[node.id];
+  while (node !== MENU && !tkAllowed(node)) node = PARENT[node.id];
   const tool = isGroup(node) ? null : node;
   $("view-menu").hidden = !!tool;
   document.querySelectorAll('section[id^="view-"]').forEach((v) => { if (v.id !== "view-menu") v.hidden = !tool || v.id !== "view-" + (tool.view || tool.id); });
